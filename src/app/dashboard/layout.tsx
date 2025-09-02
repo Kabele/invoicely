@@ -11,6 +11,7 @@ import ReceiptForm from '@/components/ReceiptForm';
 import { useInvoices } from '@/hooks/use-invoices';
 import { Invoice, Receipt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({
   children,
@@ -91,11 +92,14 @@ export default function DashboardLayout({
 
   return (
     <BusinessInfoProvider>
-      <div className="container mx-auto px-6 py-8 md:px-10">
-        <Header onCreateInvoice={handleCreateInvoice} onCreateReceipt={handleCreateReceipt} />
-        <main>
-            {children}
-        </main>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header onCreateInvoice={handleCreateInvoice} onCreateReceipt={handleCreateReceipt} />
+          <main className="flex-1 p-6 md:p-10">
+              {children}
+          </main>
+        </div>
       </div>
       <InvoiceForm
         isOpen={isInvoiceFormOpen}
