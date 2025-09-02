@@ -91,10 +91,12 @@ export default function DashboardLayout({
 
   return (
     <BusinessInfoProvider>
-       <Header onCreateInvoice={handleCreateInvoice} onCreateReceipt={handleCreateReceipt} />
-        <main className="container mx-auto px-6 py-8 md:px-10">
+      <div className="container mx-auto px-6 py-8 md:px-10">
+        <Header onCreateInvoice={handleCreateInvoice} onCreateReceipt={handleCreateReceipt} />
+        <main>
             {children}
         </main>
+      </div>
       <InvoiceForm
         isOpen={isInvoiceFormOpen}
         onOpenChange={setIsInvoiceFormOpen}
