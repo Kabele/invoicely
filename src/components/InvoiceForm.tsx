@@ -9,13 +9,14 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { Invoice, LineItem } from '@/lib/types';
+import type { Invoice, LineItem, InvoiceCategory } from '@/lib/types';
 import { Separator } from './ui/separator';
 
 const lineItemSchema = z.object({
@@ -32,6 +33,9 @@ const invoiceSchema = z.object({
   dueDate: z.date({ required_error: 'Due date is required' }),
   lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
   isPaid: z.boolean(),
+  category: z.enum(['procurement', 'service', 'repairs', 'diagnosis'], { required_error: 'Category is required' }),
+  taxRate: z.coerce.number().min(0, "Tax/Service charge can't be negative").max(100),
+  notes: z.string().optional(),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -49,6 +53,13 @@ const defaultLineItem: Omit<LineItem, 'id'> = {
   unitPrice: 0,
 };
 
+const categoryConditions: Record<InvoiceCategory, { notes: string, taxRate: number }> = {
+    procurement: { notes: '10% service charge for procurement.', taxRate: 10 },
+    service: { notes: '50% down payment expected before booking is made.', taxRate: 0 },
+    repairs: { notes: 'Initial deposit of 70% required.', taxRate: 5 },
+    diagnosis: { notes: 'Full payment required upfront.', taxRate: 0 },
+};
+
 export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }: InvoiceFormProps) {
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceSchema),
@@ -59,6 +70,9 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
       dueDate: invoice ? parseISO(invoice.dueDate) : new Date(),
       lineItems: invoice?.lineItems.length ? invoice.lineItems : [{ ...defaultLineItem, id: crypto.randomUUID() }],
       isPaid: invoice?.isPaid || false,
+      category: invoice?.category || 'service',
+      taxRate: invoice?.taxRate || 0,
+      notes: invoice?.notes || '',
     }), [invoice]),
   });
 
@@ -68,9 +82,28 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
   });
 
   const watchLineItems = form.watch('lineItems');
+  const watchTaxRate = form.watch('taxRate');
+  const watchCategory = form.watch('category');
+
   const subtotal = useMemo(() => {
     return watchLineItems.reduce((acc, item) => acc + (item.quantity || 0) * (item.unitPrice || 0), 0);
   }, [watchLineItems]);
+
+  const taxAmount = useMemo(() => {
+    return subtotal * (watchTaxRate / 100);
+  }, [subtotal, watchTaxRate]);
+
+  const total = useMemo(() => {
+    return subtotal + taxAmount;
+  }, [subtotal, taxAmount]);
+
+  useEffect(() => {
+    if (watchCategory) {
+        const condition = categoryConditions[watchCategory];
+        form.setValue('notes', condition.notes);
+        form.setValue('taxRate', condition.taxRate);
+    }
+  }, [watchCategory, form]);
 
   useEffect(() => {
     if (isOpen) {
@@ -81,6 +114,9 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
         dueDate: invoice ? parseISO(invoice.dueDate) : new Date(),
         lineItems: invoice?.lineItems && invoice.lineItems.length > 0 ? invoice.lineItems : [{ ...defaultLineItem, id: crypto.randomUUID() }],
         isPaid: invoice?.isPaid || false,
+        category: invoice?.category || 'service',
+        taxRate: invoice?.taxRate || categoryConditions[invoice?.category || 'service'].taxRate,
+        notes: invoice?.notes || categoryConditions[invoice?.category || 'service'].notes,
       });
     }
   }, [isOpen, invoice, form]);
@@ -90,7 +126,7 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
       ...values,
       dueDate: values.dueDate.toISOString(),
       status: 'Pending', // Status is recalculated in useInvoices hook
-      total: subtotal,
+      total: total,
     };
     onSubmit(finalInvoice);
   };
@@ -105,7 +141,7 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
           </SheetDescription>
         </SheetHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-grow overflow-y-auto pr-6 pl-1 space-y-6">
+          <form id="invoice-form" onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-grow overflow-y-auto pr-6 pl-1 space-y-6">
             <FormField
               control={form.control}
               name="clientName"
@@ -132,35 +168,60 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="dueDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Due Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'w-[240px] pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                 <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Due Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Category</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="service">Service</SelectItem>
+                                    <SelectItem value="procurement">Procurement</SelectItem>
+                                    <SelectItem value="repairs">Repairs</SelectItem>
+                                    <SelectItem value="diagnosis">Diagnosis</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             
             <Separator />
             
@@ -222,10 +283,53 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
               </Button>
             </div>
             
+            <Separator />
+            
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Notes / Conditions</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="e.g. 50% down payment required..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="taxRate"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Tax / Service Charge (%)</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} />
+                            </FormControl>
+                            <FormDescription>A percentage to be added to the subtotal.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
             <div className="flex justify-end">
-                <div className="text-right">
-                    <p className="text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold">{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(subtotal)}</p>
+                <div className="text-right w-64 space-y-1">
+                    <div className="flex justify-between">
+                        <p className="text-muted-foreground">Subtotal</p>
+                        <p>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(subtotal)}</p>
+                    </div>
+                     <div className="flex justify-between">
+                        <p className="text-muted-foreground">Tax/Service ({watchTaxRate}%)</p>
+                        <p>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(taxAmount)}</p>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-bold text-xl">
+                        <p>Total</p>
+                        <p>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(total)}</p>
+                    </div>
                 </div>
             </div>
 
@@ -235,7 +339,7 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
           <SheetClose asChild>
             <Button type="button" variant="outline">Cancel</Button>
           </SheetClose>
-          <Button type="submit" form="invoice-form" onClick={form.handleSubmit(handleFormSubmit)}>Save</Button>
+          <Button type="submit" form="invoice-form">Save</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

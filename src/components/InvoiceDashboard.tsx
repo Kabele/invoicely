@@ -6,19 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, FileText, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import Header from './Header';
 import InvoiceCard from './InvoiceCard';
-import InvoiceForm from './InvoiceForm';
 import InvoicePDF from './InvoicePDF';
 import { Skeleton } from './ui/skeleton';
 import type { Invoice } from '@/lib/types';
 import CurrencyConverter from './CurrencyConverter';
 
 export default function InvoiceDashboard() {
-  const { invoices, isLoaded, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
+  const { invoices, isLoaded, updateInvoice, deleteInvoice } = useInvoices();
   const { toast } = useToast();
 
-  const [isFormSheetOpen, setIsFormSheetOpen] = useState(false);
   const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
@@ -34,14 +31,13 @@ export default function InvoiceDashboard() {
     return { totalInvoices, overdueInvoices, outstandingAmount };
   }, [invoices]);
 
-  const handleCreate = () => {
-    setActiveInvoice(null);
-    setIsFormSheetOpen(true);
-  };
-
   const handleEdit = (invoice: Invoice) => {
-    setActiveInvoice(invoice);
-    setIsFormSheetOpen(true);
+    // This now needs to be handled by the layout to open the form
+    // We can use a custom event or a state management solution (like Zustand or Context)
+    // For simplicity, we'll assume the parent component (DashboardLayout) handles this.
+    // This component will no longer manage the form sheet.
+    const event = new CustomEvent('openInvoiceForm', { detail: invoice });
+    window.dispatchEvent(event);
   };
 
   const handleView = (invoice: Invoice) => {
@@ -66,22 +62,9 @@ export default function InvoiceDashboard() {
     }
   };
 
-  const handleFormSubmit = (invoiceData: Invoice) => {
-    if (activeInvoice) {
-      updateInvoice(invoiceData);
-      toast({ title: 'Invoice Updated', description: 'Your invoice has been successfully updated.' });
-    } else {
-      addInvoice(invoiceData);
-      toast({ title: 'Invoice Created', description: 'Your new invoice has been successfully created.' });
-    }
-    setIsFormSheetOpen(false);
-    setActiveInvoice(null);
-  };
 
   return (
     <>
-      <Header onCreate={handleCreate} />
-      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -128,14 +111,7 @@ export default function InvoiceDashboard() {
           )}
         </div>
       </div>
-
-      <InvoiceForm
-        isOpen={isFormSheetOpen}
-        onOpenChange={setIsFormSheetOpen}
-        onSubmit={handleFormSubmit}
-        invoice={activeInvoice}
-      />
-
+      
       {activeInvoice && (
         <InvoicePDF
           isOpen={isPdfDialogOpen}

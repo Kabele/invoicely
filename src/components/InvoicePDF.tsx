@@ -10,13 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Sparkles, Loader2 } from 'lucide-react';
+import { Download, Sparkles, Loader2, Link, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { generatePdfWithAI } from '@/lib/actions';
+import { useBusinessInfo } from '@/hooks/use-business-info';
 
 interface InvoicePDFProps {
   isOpen: boolean;
@@ -27,9 +28,14 @@ interface InvoicePDFProps {
 
 export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChange }: InvoicePDFProps) {
   const pdfRef = useRef<HTMLDivElement>(null);
+  const { businessInfo } = useBusinessInfo();
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+  const subtotal = invoice.lineItems.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
+  const taxAmount = subtotal * (invoice.taxRate / 100);
+  const total = invoice.total;
 
   const handleDownloadPdf = async () => {
     const input = pdfRef.current;
@@ -67,11 +73,9 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
     setIsGeneratingAI(false);
 
     if (result.success && result.dataUri) {
-        // This is a placeholder since the AI flow returns dummy data.
-        // In a real app, you might open this in a new tab or trigger a download.
         toast({
             title: 'AI PDF Generated',
-            description: 'The AI-enhanced PDF is ready (placeholder).',
+            description: 'The AI-enhanced PDF is ready.',
         });
         const link = document.createElement('a');
         link.href = result.dataUri;
@@ -106,40 +110,44 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
           <DialogDescription>Review the invoice details below. You can download it as a PDF.</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[70vh] overflow-y-auto p-1" ref={pdfRef}>
-            <div className="p-8 bg-white text-black">
-                <header className="flex justify-between items-center pb-8">
+        <div className="max-h-[70vh] overflow-y-auto p-1" >
+            <div className="p-8 bg-white text-black" ref={pdfRef}>
+                <header className="flex justify-between items-start pb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800">INVOICE</h1>
-                        <p className="text-gray-500">Invoice #: {invoice.id.slice(0, 8)}</p>
+                        <h1 className="text-4xl font-bold text-gray-900">{businessInfo.businessName || 'Your Company'}</h1>
+                        <p className="text-gray-500">{businessInfo.address}</p>
+                        <div className="flex items-center gap-4 mt-2 text-gray-600">
+                          {businessInfo.website && <a href={businessInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline"><Globe className="h-4 w-4" /> {businessInfo.website}</a>}
+                          {businessInfo.socials && <span className="flex items-center gap-1"><Link className="h-4 w-4" /> {businessInfo.socials}</span>}
+                        </div>
                     </div>
                     <div className="text-right">
-                        <h2 className="text-2xl font-semibold">InvoiceFast</h2>
-                        <p className="text-gray-500">123 App Street, Dev City, 10101</p>
+                        <h2 className="text-3xl font-bold text-gray-800">INVOICE</h2>
+                        <p className="text-gray-500"># {invoice.id.slice(0, 8)}</p>
                     </div>
                 </header>
                 <Separator className="my-8"/>
                 <div className="grid grid-cols-2 gap-8">
                     <div>
-                        <h3 className="font-semibold text-gray-600 mb-2">Bill To:</h3>
-                        <p className="font-bold">{invoice.clientName}</p>
+                        <h3 className="font-semibold text-gray-600 mb-2 uppercase tracking-wide">Bill To</h3>
+                        <p className="font-bold text-lg">{invoice.clientName}</p>
                         <p className="text-gray-700">{invoice.projectDescription}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right space-y-1">
                         <p><span className="font-semibold text-gray-600">Invoice Date:</span> {format(new Date(), 'MMM d, yyyy')}</p>
                         <p><span className="font-semibold text-gray-600">Due Date:</span> {format(parseISO(invoice.dueDate), 'MMM d, yyyy')}</p>
-                        <Badge className={cn("mt-2 capitalize text-lg", statusColors[invoice.status])}>{invoice.status}</Badge>
+                        <Badge className={cn("mt-2 capitalize text-base", statusColors[invoice.status])}>{invoice.status}</Badge>
                     </div>
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-10">
                 <Table>
                     <TableHeader>
-                    <TableRow className='bg-gray-50'>
-                        <TableHead className="w-1/2">Description</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
+                    <TableRow className='bg-gray-100'>
+                        <TableHead className="w-1/2 font-bold text-gray-700">Description</TableHead>
+                        <TableHead className="text-right font-bold text-gray-700">Quantity</TableHead>
+                        <TableHead className="text-right font-bold text-gray-700">Unit Price</TableHead>
+                        <TableHead className="text-right font-bold text-gray-700">Amount</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -156,21 +164,40 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                 </div>
                 
                 <div className="flex justify-end mt-8">
-                    <div className="w-1/3 text-right">
+                    <div className="w-1/3 text-right space-y-2">
                         <div className="flex justify-between">
                             <p className="text-gray-600">Subtotal:</p>
-                            <p>{formatCurrency(invoice.total)}</p>
+                            <p>{formatCurrency(subtotal)}</p>
+                        </div>
+                         <div className="flex justify-between">
+                            <p className="text-gray-600">Tax/Service ({invoice.taxRate}%):</p>
+                            <p>{formatCurrency(taxAmount)}</p>
                         </div>
                         <Separator className="my-2"/>
-                        <div className="flex justify-between font-bold text-xl">
+                        <div className="flex justify-between font-bold text-2xl">
                             <p>Total:</p>
-                            <p>{formatCurrency(invoice.total)}</p>
+                            <p>{formatCurrency(total)}</p>
                         </div>
                     </div>
                 </div>
+                
+                 {invoice.notes && (
+                    <div className="mt-12">
+                        <h4 className="font-semibold text-gray-600 mb-1">Notes / Conditions</h4>
+                        <p className="text-gray-500 text-sm">{invoice.notes}</p>
+                    </div>
+                )}
+                
+                 {businessInfo.accountNumber && (
+                    <div className="mt-8">
+                        <h4 className="font-semibold text-gray-600 mb-1">Payment Details</h4>
+                        <p className="text-gray-500 text-sm">Account Number: {businessInfo.accountNumber}</p>
+                    </div>
+                )}
 
                 <div className="mt-16 text-center text-gray-500 text-sm">
                     <p>Thank you for your business!</p>
+                     <p>Generated by InvoiceFast - {businessInfo.email}</p>
                 </div>
             </div>
         </div>

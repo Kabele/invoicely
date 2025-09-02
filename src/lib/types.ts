@@ -7,6 +7,8 @@ export type LineItem = {
 
 export type InvoiceStatus = 'Paid' | 'Pending' | 'Overdue';
 
+export type InvoiceCategory = 'procurement' | 'service' | 'repairs' | 'diagnosis';
+
 export type Invoice = {
   id: string;
   clientName: string;
@@ -16,4 +18,16 @@ export type Invoice = {
   lineItems: LineItem[];
   total: number;
   isPaid: boolean;
+  category: InvoiceCategory;
+  taxRate: number; // Percentage
+  notes: string;
+};
+
+export type BusinessInfo = {
+    businessName: string;
+    address: string;
+    accountNumber: string;
+    socials: string;
+    email: string;
+    website: string;
 };

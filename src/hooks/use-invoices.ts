@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Invoice, InvoiceStatus, LineItem } from '@/lib/types';
+import type { Invoice, InvoiceStatus } from '@/lib/types';
 import { isPast, parseISO } from 'date-fns';
 import { useAuth } from './use-auth';
 
-const getInvoiceStatus = (invoice: Invoice): InvoiceStatus => {
+const getInvoiceStatus = (invoice: Pick<Invoice, 'isPaid' | 'dueDate'>): InvoiceStatus => {
   if (invoice.isPaid) {
     return 'Paid';
   }
@@ -15,8 +15,10 @@ const getInvoiceStatus = (invoice: Invoice): InvoiceStatus => {
   return 'Pending';
 };
 
-const calculateTotal = (lineItems: LineItem[]): number => {
-  return lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+const calculateTotal = (invoice: Pick<Invoice, 'lineItems' | 'taxRate'>): number => {
+    const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const taxAmount = subtotal * (invoice.taxRate / 100);
+    return subtotal + taxAmount;
 };
 
 export function useInvoices() {
@@ -32,6 +34,7 @@ export function useInvoices() {
     const storageKey = getStorageKey();
     if (!storageKey) {
         setIsLoaded(true);
+        setInvoices([]); // Clear invoices on logout
         return;
     };
     try {
@@ -41,9 +44,11 @@ export function useInvoices() {
         const updatedInvoices = parsedInvoices.map(invoice => ({
             ...invoice,
             status: getInvoiceStatus(invoice),
-            total: calculateTotal(invoice.lineItems)
+            total: calculateTotal(invoice)
         }));
         setInvoices(updatedInvoices);
+      } else {
+        setInvoices([]); // No invoices for this user yet
       }
     } catch (error) {
       console.error('Failed to load invoices from local storage:', error);
@@ -63,25 +68,18 @@ export function useInvoices() {
     }
   }, [invoices, isLoaded, getStorageKey]);
 
-  const addInvoice = useCallback((newInvoiceData: Omit<Invoice, 'id' | 'status' | 'total'>) => {
-    const total = calculateTotal(newInvoiceData.lineItems);
-    const invoiceWithStatus = {
-        ...newInvoiceData,
-        id: crypto.randomUUID(),
-        total,
-        status: getInvoiceStatus({ ...newInvoiceData, id: '', total, status: 'Pending' }) // temp values
-    }
-    setInvoices(prev => [...prev, invoiceWithStatus]);
+  const addInvoice = useCallback((newInvoiceData: Invoice) => {
+    const total = calculateTotal(newInvoiceData);
+    const status = getInvoiceStatus(newInvoiceData);
+    const finalInvoice = { ...newInvoiceData, total, status };
+    setInvoices(prev => [...prev, finalInvoice]);
   }, []);
 
   const updateInvoice = useCallback((updatedInvoice: Invoice) => {
-    const total = calculateTotal(updatedInvoice.lineItems);
-    const invoiceWithStatus = {
-        ...updatedInvoice,
-        total,
-        status: getInvoiceStatus({ ...updatedInvoice, total })
-    }
-    setInvoices(prev => prev.map(inv => (inv.id === updatedInvoice.id ? invoiceWithStatus : inv)));
+    const total = calculateTotal(updatedInvoice);
+    const status = getInvoiceStatus(updatedInvoice);
+    const finalInvoice = { ...updatedInvoice, total, status };
+    setInvoices(prev => prev.map(inv => (inv.id === updatedInvoice.id ? finalInvoice : inv)));
   }, []);
 
   const deleteInvoice = useCallback((invoiceId: string) => {
