@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useInvoices } from '@/hooks/use-invoices';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, FileText, CheckCircle } from 'lucide-react';
@@ -9,18 +9,31 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import InvoiceCard from './InvoiceCard';
 import InvoicePDF from './InvoicePDF';
 import { Skeleton } from './ui/skeleton';
-import type { Invoice } from '@/lib/types';
+import type { Invoice, Receipt } from '@/lib/types';
 import CurrencyConverter from './CurrencyConverter';
+import ReceiptPDF from './ReceiptPDF';
 
 export default function InvoiceDashboard() {
   const { invoices, isLoaded, updateInvoice, deleteInvoice } = useInvoices();
   const { toast } = useToast();
 
   const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
+  const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
+  const [activeReceipt, setActiveReceipt] = useState<Receipt | null>(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    const generateReceipt = (event: Event) => {
+      const customEvent = event as CustomEvent<Receipt>;
+      setActiveReceipt(customEvent.detail);
+      setIsReceiptDialogOpen(true);
+    };
+    window.addEventListener('generateReceipt', generateReceipt);
+    return () => window.removeEventListener('generateReceipt', generateReceipt);
+  }, []);
 
   const summaryStats = useMemo(() => {
     const totalInvoices = invoices.length;
@@ -33,9 +46,6 @@ export default function InvoiceDashboard() {
 
   const handleEdit = (invoice: Invoice) => {
     // This now needs to be handled by the layout to open the form
-    // We can use a custom event or a state management solution (like Zustand or Context)
-    // For simplicity, we'll assume the parent component (DashboardLayout) handles this.
-    // This component will no longer manage the form sheet.
     const event = new CustomEvent('openInvoiceForm', { detail: invoice });
     window.dispatchEvent(event);
   };
@@ -118,6 +128,14 @@ export default function InvoiceDashboard() {
           onOpenChange={setIsPdfDialogOpen}
           invoice={activeInvoice}
           onStatusChange={updateInvoice}
+        />
+      )}
+
+      {activeReceipt && (
+        <ReceiptPDF
+          isOpen={isReceiptDialogOpen}
+          onOpenChange={setIsReceiptDialogOpen}
+          receipt={activeReceipt}
         />
       )}
       

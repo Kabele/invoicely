@@ -23,6 +23,14 @@ export type Invoice = {
   notes: string;
 };
 
+export type Receipt = {
+  id: string;
+  clientName: string;
+  description: string;
+  amount: number;
+  paymentDate: string;
+};
+
 export type BusinessInfo = {
     businessName: string;
     address: string;
@@ -30,4 +38,6 @@ export type BusinessInfo = {
     socials: string;
     email: string;
     website: string;
+    primaryColor?: string;
+    accentColor?: string;
 };

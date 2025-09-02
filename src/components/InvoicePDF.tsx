@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Sparkles, Loader2, Link, Globe } from 'lucide-react';
+import { Download, Sparkles, Loader2, Link, Globe, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 import { Switch } from './ui/switch';
@@ -18,6 +18,7 @@ import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { generatePdfWithAI } from '@/lib/actions';
 import { useBusinessInfo } from '@/hooks/use-business-info';
+import ReceiptPDF from './ReceiptPDF';
 
 interface InvoicePDFProps {
   isOpen: boolean;
@@ -32,6 +33,12 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  
+  const brandColors = useMemo(() => ({
+    primary: businessInfo.primaryColor || '#000000',
+    accent: businessInfo.accentColor || '#4f46e5',
+  }), [businessInfo]);
 
   const subtotal = invoice.lineItems.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
   const taxAmount = subtotal * (invoice.taxRate / 100);
@@ -103,6 +110,7 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
   }
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
@@ -114,7 +122,7 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
             <div className="p-8 bg-white text-black" ref={pdfRef}>
                 <header className="flex justify-between items-start pb-8">
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-900">{businessInfo.businessName || 'Your Company'}</h1>
+                        <h1 className="text-4xl font-bold" style={{ color: brandColors.primary }}>{businessInfo.businessName || 'Your Company'}</h1>
                         <p className="text-gray-500">{businessInfo.address}</p>
                         <div className="flex items-center gap-4 mt-2 text-gray-600">
                           {businessInfo.website && <a href={businessInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline"><Globe className="h-4 w-4" /> {businessInfo.website}</a>}
@@ -122,14 +130,14 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                         </div>
                     </div>
                     <div className="text-right">
-                        <h2 className="text-3xl font-bold text-gray-800">INVOICE</h2>
+                        <h2 className="text-3xl font-bold" style={{ color: brandColors.primary }}>INVOICE</h2>
                         <p className="text-gray-500"># {invoice.id.slice(0, 8)}</p>
                     </div>
                 </header>
                 <Separator className="my-8"/>
                 <div className="grid grid-cols-2 gap-8">
                     <div>
-                        <h3 className="font-semibold text-gray-600 mb-2 uppercase tracking-wide">Bill To</h3>
+                        <h3 className="font-semibold mb-2 uppercase tracking-wide" style={{ color: brandColors.accent }}>Bill To</h3>
                         <p className="font-bold text-lg">{invoice.clientName}</p>
                         <p className="text-gray-700">{invoice.projectDescription}</p>
                     </div>
@@ -143,11 +151,11 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                 <div className="mt-10">
                 <Table>
                     <TableHeader>
-                    <TableRow className='bg-gray-100'>
-                        <TableHead className="w-1/2 font-bold text-gray-700">Description</TableHead>
-                        <TableHead className="text-right font-bold text-gray-700">Quantity</TableHead>
-                        <TableHead className="text-right font-bold text-gray-700">Unit Price</TableHead>
-                        <TableHead className="text-right font-bold text-gray-700">Amount</TableHead>
+                    <TableRow style={{ backgroundColor: brandColors.accent, color: 'white' }}>
+                        <TableHead className="w-1/2 font-bold text-white">Description</TableHead>
+                        <TableHead className="text-right font-bold text-white">Quantity</TableHead>
+                        <TableHead className="text-right font-bold text-white">Unit Price</TableHead>
+                        <TableHead className="text-right font-bold text-white">Amount</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -174,7 +182,7 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                             <p>{formatCurrency(taxAmount)}</p>
                         </div>
                         <Separator className="my-2"/>
-                        <div className="flex justify-between font-bold text-2xl">
+                        <div className="flex justify-between font-bold text-2xl" style={{ color: brandColors.primary }}>
                             <p>Total:</p>
                             <p>{formatCurrency(total)}</p>
                         </div>
@@ -183,14 +191,14 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                 
                  {invoice.notes && (
                     <div className="mt-12">
-                        <h4 className="font-semibold text-gray-600 mb-1">Notes / Conditions</h4>
+                        <h4 className="font-semibold mb-1" style={{ color: brandColors.accent }}>Notes / Conditions</h4>
                         <p className="text-gray-500 text-sm">{invoice.notes}</p>
                     </div>
                 )}
                 
                  {businessInfo.accountNumber && (
                     <div className="mt-8">
-                        <h4 className="font-semibold text-gray-600 mb-1">Payment Details</h4>
+                        <h4 className="font-semibold mb-1" style={{ color: brandColors.accent }}>Payment Details</h4>
                         <p className="text-gray-500 text-sm">Account Number: {businessInfo.accountNumber}</p>
                     </div>
                 )}
@@ -212,17 +220,36 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                 <Label htmlFor="paid-status">Mark as Paid</Label>
             </div>
             <div className="flex gap-2">
+                {invoice.isPaid && (
+                   <Button variant="outline" onClick={() => setIsReceiptOpen(true)}>
+                       <Receipt className="mr-2 h-4 w-4" /> Download Receipt
+                   </Button>
+                )}
                 <Button variant="secondary" onClick={handleGenerateWithAI} disabled={isGeneratingAI}>
                     {isGeneratingAI ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    Generate with AI
+                    AI
                 </Button>
                 <Button onClick={handleDownloadPdf} disabled={isDownloading}>
                     {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Download PDF
+                    Download
                 </Button>
             </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {isReceiptOpen && (
+        <ReceiptPDF
+            isOpen={isReceiptOpen}
+            onOpenChange={setIsReceiptOpen}
+            receipt={{
+                id: invoice.id,
+                clientName: invoice.clientName,
+                description: `Payment for Invoice #${invoice.id.slice(0, 8)}`,
+                amount: invoice.total,
+                paymentDate: new Date().toISOString(),
+            }}
+        />
+    )}
+    </>
   );
 }

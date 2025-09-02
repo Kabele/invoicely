@@ -17,6 +17,8 @@ const defaultBusinessInfo: BusinessInfo = {
     socials: '',
     email: '',
     website: '',
+    primaryColor: '#000000',
+    accentColor: '#4f46e5',
 };
 
 const BusinessInfoContext = createContext<BusinessInfoContextType>({
@@ -59,8 +61,9 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
     const storageKey = getStorageKey();
     if(storageKey){
         try {
-            localStorage.setItem(storageKey, JSON.stringify(newInfo));
-            setBusinessInfoState(newInfo);
+            const completeInfo = { ...defaultBusinessInfo, ...newInfo };
+            localStorage.setItem(storageKey, JSON.stringify(completeInfo));
+            setBusinessInfoState(completeInfo);
         } catch (error) {
             console.error('Failed to save business info to local storage:', error);
         }

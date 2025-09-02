@@ -1,16 +1,17 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { FileText, Plus, LogOut, Settings } from 'lucide-react';
+import { FileText, Plus, LogOut, Settings, Receipt } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface HeaderProps {
-  onCreate: () => void;
+  onCreateInvoice: () => void;
+  onCreateReceipt: () => void;
 }
 
-export default function Header({ onCreate }: HeaderProps) {
+export default function Header({ onCreateInvoice, onCreateReceipt }: HeaderProps) {
   const { logout, user } = useAuth();
   const pathname = usePathname();
 
@@ -27,10 +28,16 @@ export default function Header({ onCreate }: HeaderProps) {
           {user?.email}
         </div>
         {pathname === '/dashboard' && (
-           <Button onClick={onCreate}>
-            <Plus className="mr-2" />
-            Create Invoice
-          </Button>
+           <>
+            <Button onClick={onCreateReceipt} variant="outline">
+                <Receipt className="mr-2" />
+                Create Receipt
+            </Button>
+            <Button onClick={onCreateInvoice}>
+                <Plus className="mr-2" />
+                Create Invoice
+            </Button>
+           </>
         )}
         <Button variant="outline" size="icon" asChild>
           <Link href="/dashboard/settings">

@@ -19,6 +19,8 @@ const businessInfoSchema = z.object({
     website: z.string().url('Invalid URL').optional().or(z.literal('')),
     socials: z.string().optional(),
     accountNumber: z.string().optional(),
+    primaryColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
+    accentColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
 });
 
 export default function SettingsPage() {
@@ -51,7 +53,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Business Information</CardTitle>
-                    <CardDescription>This information will appear on your invoices.</CardDescription>
+                    <CardDescription>This information will appear on your invoices and receipts.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -134,6 +136,40 @@ export default function SettingsPage() {
                                     </FormItem>
                                 )}
                             />
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="primaryColor"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Primary Brand Color</FormLabel>
+                                            <FormControl>
+                                                <div className="flex items-center gap-2">
+                                                    <Input type="color" {...field} className="w-12 h-10 p-1" />
+                                                    <Input type="text" {...field} placeholder="#000000" />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="accentColor"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Accent Brand Color</FormLabel>
+                                            <FormControl>
+                                                <div className="flex items-center gap-2">
+                                                    <Input type="color" {...field} className="w-12 h-10 p-1" />
+                                                    <Input type="text" {...field} placeholder="#4f46e5" />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <Button type="submit">Save Changes</Button>
                         </form>
                     </Form>

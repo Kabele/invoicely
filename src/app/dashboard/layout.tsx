@@ -7,8 +7,9 @@ import { Loader2 } from 'lucide-react';
 import { BusinessInfoProvider } from '@/hooks/use-business-info';
 import Header from '@/components/Header';
 import InvoiceForm from '@/components/InvoiceForm';
+import ReceiptForm from '@/components/ReceiptForm';
 import { useInvoices } from '@/hooks/use-invoices';
-import { Invoice } from '@/lib/types';
+import { Invoice, Receipt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardLayout({
@@ -22,7 +23,8 @@ export default function DashboardLayout({
   const { addInvoice, updateInvoice } = useInvoices();
   const { toast } = useToast();
   
-  const [isFormSheetOpen, setIsFormSheetOpen] = useState(false);
+  const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
+  const [isReceiptFormOpen, setIsReceiptFormOpen] = useState(false);
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
@@ -30,13 +32,29 @@ export default function DashboardLayout({
       router.replace('/login');
     }
   }, [user, loading, router]);
+  
+  // Custom event listener to open invoice form from other components
+  useEffect(() => {
+    const openForm = (event: Event) => {
+      const customEvent = event as CustomEvent<Invoice>;
+      setActiveInvoice(customEvent.detail);
+      setIsInvoiceFormOpen(true);
+    };
+    window.addEventListener('openInvoiceForm', openForm);
+    return () => window.removeEventListener('openInvoiceForm', openForm);
+  }, []);
 
-  const handleCreate = () => {
+
+  const handleCreateInvoice = () => {
     setActiveInvoice(null);
-    setIsFormSheetOpen(true);
+    setIsInvoiceFormOpen(true);
+  };
+
+  const handleCreateReceipt = () => {
+    setIsReceiptFormOpen(true);
   };
   
-  const handleFormSubmit = (invoiceData: Invoice) => {
+  const handleInvoiceFormSubmit = (invoiceData: Invoice) => {
     if (invoiceData.id && invoices.find(i => i.id === invoiceData.id)) {
       updateInvoice(invoiceData);
       toast({ title: 'Invoice Updated', description: 'Your invoice has been successfully updated.' });
@@ -44,9 +62,21 @@ export default function DashboardLayout({
       addInvoice(invoiceData);
       toast({ title: 'Invoice Created', description: 'Your new invoice has been successfully created.' });
     }
-    setIsFormSheetOpen(false);
+    setIsInvoiceFormOpen(false);
     setActiveInvoice(null);
   };
+
+  const handleReceiptFormSubmit = (receiptData: Receipt) => {
+    // For now, we just generate the receipt without saving it.
+    // In a real app, you might save receipts or link them to invoices.
+    toast({ title: 'Receipt Generated', description: 'Your receipt has been successfully generated.' });
+    setIsReceiptFormOpen(false);
+    
+    // Trigger download or display for the generated receipt
+    const event = new CustomEvent('generateReceipt', { detail: receiptData });
+    window.dispatchEvent(event);
+  };
+
 
   const { invoices } = useInvoices();
 
@@ -61,15 +91,20 @@ export default function DashboardLayout({
 
   return (
     <BusinessInfoProvider>
-       <Header onCreate={handleCreate} />
-        <main className="container mx-auto p-4 md:p-8">
+       <Header onCreateInvoice={handleCreateInvoice} onCreateReceipt={handleCreateReceipt} />
+        <main className="container mx-auto px-6 py-8 md:px-10">
             {children}
         </main>
       <InvoiceForm
-        isOpen={isFormSheetOpen}
-        onOpenChange={setIsFormSheetOpen}
-        onSubmit={handleFormSubmit}
+        isOpen={isInvoiceFormOpen}
+        onOpenChange={setIsInvoiceFormOpen}
+        onSubmit={handleInvoiceFormSubmit}
         invoice={activeInvoice}
+      />
+      <ReceiptForm
+        isOpen={isReceiptFormOpen}
+        onOpenChange={setIsReceiptFormOpen}
+        onSubmit={handleReceiptFormSubmit}
       />
     </BusinessInfoProvider>
   );
