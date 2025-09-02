@@ -198,7 +198,7 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
                       name={`lineItems.${index}.unitPrice`}
                       render={({ field }) => (
                         <FormItem className="w-32">
-                          <FormLabel>Unit Price</FormLabel>
+                          <FormLabel>Unit Price (NGN)</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" {...field} />
                           </FormControl>
@@ -225,7 +225,7 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
             <div className="flex justify-end">
                 <div className="text-right">
                     <p className="text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(subtotal)}</p>
+                    <p className="text-2xl font-bold">{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(subtotal)}</p>
                 </div>
             </div>
 

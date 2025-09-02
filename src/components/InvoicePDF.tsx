@@ -94,6 +94,10 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
     Overdue: 'bg-red-100 text-red-800 border-red-200',
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
@@ -143,8 +147,8 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                         <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.description}</TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">${(item.quantity * item.unitPrice).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.quantity * item.unitPrice)}</TableCell>
                         </TableRow>
                     ))}
                     </TableBody>
@@ -155,12 +159,12 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                     <div className="w-1/3 text-right">
                         <div className="flex justify-between">
                             <p className="text-gray-600">Subtotal:</p>
-                            <p>${invoice.total.toFixed(2)}</p>
+                            <p>{formatCurrency(invoice.total)}</p>
                         </div>
                         <Separator className="my-2"/>
                         <div className="flex justify-between font-bold text-xl">
                             <p>Total:</p>
-                            <p>${invoice.total.toFixed(2)}</p>
+                            <p>{formatCurrency(invoice.total)}</p>
                         </div>
                     </div>
                 </div>

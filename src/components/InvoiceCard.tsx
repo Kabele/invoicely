@@ -38,7 +38,7 @@ export default function InvoiceCard({ invoice, onEdit, onView, onDelete }: Invoi
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-3xl font-bold">
-          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
+          {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(total)}
         </p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">

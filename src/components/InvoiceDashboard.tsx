@@ -12,6 +12,7 @@ import InvoiceForm from './InvoiceForm';
 import InvoicePDF from './InvoicePDF';
 import { Skeleton } from './ui/skeleton';
 import type { Invoice } from '@/lib/types';
+import CurrencyConverter from './CurrencyConverter';
 
 export default function InvoiceDashboard() {
   const { invoices, isLoaded, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
@@ -81,7 +82,7 @@ export default function InvoiceDashboard() {
     <>
       <Header onCreate={handleCreate} />
       
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
@@ -107,10 +108,11 @@ export default function InvoiceDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoaded ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(summaryStats.outstandingAmount) : <Skeleton className="h-8 w-32" />}
+              {isLoaded ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(summaryStats.outstandingAmount) : <Skeleton className="h-8 w-32" />}
             </div>
           </CardContent>
         </Card>
+        <CurrencyConverter />
       </div>
 
       <div>
