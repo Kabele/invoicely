@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Invoice, InvoiceStatus, LineItem } from '@/lib/types';
 import { isPast, parseISO } from 'date-fns';
-
-const INVOICES_STORAGE_KEY = 'invoices';
+import { useAuth } from './use-auth';
 
 const getInvoiceStatus = (invoice: Invoice): InvoiceStatus => {
   if (invoice.isPaid) {
@@ -21,12 +20,22 @@ const calculateTotal = (lineItems: LineItem[]): number => {
 };
 
 export function useInvoices() {
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  const getStorageKey = useCallback(() => {
+    return user ? `invoices_${user.uid}` : null;
+  }, [user]);
 
   useEffect(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey) {
+        setIsLoaded(true);
+        return;
+    };
     try {
-      const storedInvoices = localStorage.getItem(INVOICES_STORAGE_KEY);
+      const storedInvoices = localStorage.getItem(storageKey);
       if (storedInvoices) {
         const parsedInvoices: Invoice[] = JSON.parse(storedInvoices);
         const updatedInvoices = parsedInvoices.map(invoice => ({
@@ -41,17 +50,18 @@ export function useInvoices() {
     } finally {
         setIsLoaded(true);
     }
-  }, []);
+  }, [getStorageKey]);
 
   useEffect(() => {
-    if(isLoaded){
+    const storageKey = getStorageKey();
+    if(isLoaded && storageKey){
         try {
-            localStorage.setItem(INVOICES_STORAGE_KEY, JSON.stringify(invoices));
+            localStorage.setItem(storageKey, JSON.stringify(invoices));
         } catch (error) {
             console.error('Failed to save invoices to local storage:', error);
         }
     }
-  }, [invoices, isLoaded]);
+  }, [invoices, isLoaded, getStorageKey]);
 
   const addInvoice = useCallback((newInvoiceData: Omit<Invoice, 'id' | 'status' | 'total'>) => {
     const total = calculateTotal(newInvoiceData.lineItems);
