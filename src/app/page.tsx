@@ -23,10 +23,10 @@ export default function LandingPage() {
       <main className="flex-grow">
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            Effortless Invoicing is Here
+            Effortless Invoicing & Receipts
           </h2>
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-8">
-            InvoiceFast helps you create, manage, and track your invoices with ease. Spend less time on paperwork and more time on what matters.
+            InvoiceFast helps you create, manage, and track your invoices and receipts with ease. Spend less time on paperwork and more time on what matters.
           </p>
           <Button size="lg" asChild>
             <Link href="/signup">Get Started for Free</Link>
@@ -34,11 +34,11 @@ export default function LandingPage() {
         </section>
 
         <section className="bg-muted py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-12 text-center">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-4 gap-12 text-center">
             <div>
-              <h3 className="text-xl font-semibold mb-2">Create Invoices in Seconds</h3>
+              <h3 className="text-xl font-semibold mb-2">Create Invoices & Receipts</h3>
               <p className="text-muted-foreground">
-                Our intuitive form makes creating professional invoices a breeze.
+                Our intuitive forms make creating professional documents a breeze.
               </p>
             </div>
             <div>
@@ -48,9 +48,15 @@ export default function LandingPage() {
               </p>
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-2">Currency Conversion</h3>
+              <h3 className="text-xl font-semibold mb-2">Downloadable PDFs</h3>
               <p className="text-muted-foreground">
-                Convert invoice totals to different currencies with a single click using our AI-powered converter.
+                Generate and download professional PDF versions of your invoices and receipts.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-2">AI Currency Converter</h3>
+              <p className="text-muted-foreground">
+                Convert totals to different currencies with a single click.
               </p>
             </div>
           </div>

@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, LayoutGrid, Settings, LogOut, Info } from 'lucide-react';
+import { FileText, LayoutGrid, Settings, LogOut, Info, ShieldCheck } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
+
+const superuserEmail = 'kabelecliff@gmail.com';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -29,6 +31,14 @@ export default function Sidebar() {
       icon: Info,
     },
   ];
+
+  if (user?.email === superuserEmail) {
+    navItems.push({
+      href: '/dashboard/superuser',
+      label: 'Admin',
+      icon: ShieldCheck,
+    });
+  }
 
   return (
     <aside className="w-64 flex-shrink-0 border-r bg-muted/40 flex flex-col">
