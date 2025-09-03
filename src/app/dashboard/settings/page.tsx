@@ -5,12 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useBusinessInfo } from '@/hooks/use-business-info';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { BusinessInfo } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 const businessInfoSchema = z.object({
     businessName: z.string().min(1, 'Business name is required'),
@@ -21,6 +22,7 @@ const businessInfoSchema = z.object({
     accountNumber: z.string().optional(),
     primaryColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
     accentColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
+    signatureImage: z.string().optional(),
 });
 
 export default function SettingsPage() {
@@ -170,6 +172,46 @@ export default function SettingsPage() {
                                     )}
                                 />
                             </div>
+                             <FormField
+                                control={form.control}
+                                name="signatureImage"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Signature</FormLabel>
+                                        <FormControl>
+                                             <Input 
+                                                type="file" 
+                                                accept="image/png, image/jpeg"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            form.setValue('signatureImage', reader.result as string);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Upload a PNG or JPG file. Recommended size: 200x100 pixels.
+                                        </FormDescription>
+                                        {form.watch('signatureImage') && (
+                                            <div className="mt-2 p-2 border rounded-md">
+                                                <Image 
+                                                    src={form.watch('signatureImage')!} 
+                                                    alt="Signature preview" 
+                                                    width={150} 
+                                                    height={75}
+                                                    className="object-contain" 
+                                                />
+                                            </div>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <Button type="submit">Save Changes</Button>
                         </form>
                     </Form>

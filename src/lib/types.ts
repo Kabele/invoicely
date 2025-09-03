@@ -40,4 +40,5 @@ export type BusinessInfo = {
     website: string;
     primaryColor?: string;
     accentColor?: string;
+    signatureImage?: string;
 };

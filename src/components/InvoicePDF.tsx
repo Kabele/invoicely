@@ -4,6 +4,7 @@ import { useRef, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
+import Image from 'next/image';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -171,7 +172,13 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                 </Table>
                 </div>
                 
-                <div className="flex justify-end mt-8">
+                <div className="flex justify-between items-end mt-8">
+                     {businessInfo.signatureImage && (
+                        <div>
+                            <Image src={businessInfo.signatureImage} alt="Signature" width={150} height={75} className="object-contain" />
+                            <p className="border-t mt-2 pt-1 text-xs text-gray-500">Authorized Signature</p>
+                        </div>
+                    )}
                     <div className="w-1/3 text-right space-y-2">
                         <div className="flex justify-between">
                             <p className="text-gray-600">Subtotal:</p>

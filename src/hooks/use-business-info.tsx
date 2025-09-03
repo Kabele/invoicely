@@ -19,6 +19,7 @@ const defaultBusinessInfo: BusinessInfo = {
     website: '',
     primaryColor: '#000000',
     accentColor: '#4f46e5',
+    signatureImage: '',
 };
 
 const BusinessInfoContext = createContext<BusinessInfoContextType>({
