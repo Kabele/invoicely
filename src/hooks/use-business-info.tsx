@@ -22,6 +22,7 @@ const defaultBusinessInfo: BusinessInfo = {
     primaryColor: '#000000',
     accentColor: '#4f46e5',
     signatureImage: '',
+    logoImage: '',
 };
 
 const BusinessInfoContext = createContext<BusinessInfoContextType>({
@@ -47,9 +48,13 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
 
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        setBusinessInfoState({ ...defaultBusinessInfo, ...docSnap.data() } as BusinessInfo);
+        const data = docSnap.data();
+        setBusinessInfoState({ ...defaultBusinessInfo, ...data } as BusinessInfo);
       } else {
-        setBusinessInfoState(defaultBusinessInfo);
+        // If the doc doesn't exist, we create it with the user's email
+        const initialInfo = { ...defaultBusinessInfo, email: user.email };
+        setDoc(docRef, { email: user.email }, { merge: true });
+        setBusinessInfoState(initialInfo);
       }
       setIsLoaded(true);
     }, (error) => {
@@ -63,8 +68,9 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
   const setBusinessInfo = async (newInfo: BusinessInfo) => {
     if (user) {
       try {
-        const completeInfo = { ...businessInfo, ...newInfo };
-        await setDoc(doc(db, 'users', user.uid), completeInfo, { merge: true });
+        // Ensure email from auth is preserved
+        const infoToSave = { ...newInfo, email: user.email };
+        await setDoc(doc(db, 'users', user.uid), infoToSave, { merge: true });
         // The state will be updated by the onSnapshot listener
       } catch (error) {
         console.error('Failed to save business info to Firestore:', error);

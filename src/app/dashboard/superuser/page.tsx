@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collectionGroup, getDocs, collection, getCountFromServer } from 'firebase/firestore';
+import { collectionGroup, getCountFromServer, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ const superuserEmail = 'kabelecliff@gmail.com';
 interface Analytics {
   totalUsers: number;
   totalInvoices: number;
-  totalReceipts: number; // For future use
+  totalReceipts: number;
 }
 
 export default function SuperuserDashboard() {
@@ -34,20 +34,19 @@ export default function SuperuserDashboard() {
       const fetchAnalytics = async () => {
         setIsLoading(true);
         try {
-          const usersColl = collection(db, 'users');
-          const usersSnapshot = await getCountFromServer(usersColl);
+          const usersQuery = query(collectionGroup(db, 'users'), where('email', '!=', superuserEmail));
+          const usersSnapshot = await getCountFromServer(usersQuery);
           
           const invoicesQuery = collectionGroup(db, 'invoices');
           const invoicesSnapshot = await getCountFromServer(invoicesQuery);
 
-          // Note: Receipts are not currently saved to Firestore.
-          // This is a placeholder for when that functionality is added.
-          const totalReceipts = 0; 
+          const receiptsQuery = collectionGroup(db, 'receipts');
+          const receiptsSnapshot = await getCountFromServer(receiptsQuery);
 
           setAnalytics({
             totalUsers: usersSnapshot.data().count,
             totalInvoices: invoicesSnapshot.data().count,
-            totalReceipts: totalReceipts,
+            totalReceipts: receiptsSnapshot.data().count,
           });
         } catch (error) {
           console.error("Error fetching analytics:", error);
@@ -86,7 +85,7 @@ export default function SuperuserDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.totalUsers}</div>
-            <p className="text-xs text-muted-foreground">Total registered users</p>
+            <p className="text-xs text-muted-foreground">Total registered users (excluding admin)</p>
           </CardContent>
         </Card>
         <Card>
@@ -106,7 +105,7 @@ export default function SuperuserDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.totalReceipts}</div>
-            <p className="text-xs text-muted-foreground">Feature coming soon</p>
+            <p className="text-xs text-muted-foreground">Across all users</p>
           </CardContent>
         </Card>
       </div>

@@ -21,7 +21,7 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const { addInvoice, updateInvoice } = useInvoices();
+  const { addInvoice, updateInvoice, addReceipt } = useInvoices();
   const { toast } = useToast();
   
   const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
@@ -72,16 +72,19 @@ export default function DashboardLayout({
     }
   };
 
-  const handleReceiptFormSubmit = (receiptData: Receipt) => {
-    // For now, we just generate the receipt without saving it.
-    // In a real app, you might save receipts or link them to invoices.
-    toast({ title: 'Receipt Generated', description: 'Your receipt has been successfully generated.' });
-    setIsReceiptFormOpen(false);
-    
-    // Trigger download or display for the generated receipt
-    const event = new CustomEvent('generateReceipt', { detail: receiptData });
-    window.dispatchEvent(event);
+  const handleReceiptFormSubmit = async (receiptData: Receipt) => {
+    try {
+      await addReceipt(receiptData);
+      toast({ title: 'Receipt Created', description: 'Your new receipt has been successfully saved.' });
+      setIsReceiptFormOpen(false);
+      // Trigger preview/download for the generated receipt
+      const event = new CustomEvent('generateReceipt', { detail: receiptData });
+      window.dispatchEvent(event);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to save receipt.', variant: 'destructive' });
+    }
   };
+
 
   if (loading || !user) {
     return (

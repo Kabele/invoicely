@@ -11,13 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Sparkles, Loader2, Link, Globe, Receipt } from 'lucide-react';
+import { Download, Loader2, Link, Globe, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { generatePdfWithAI } from '@/lib/actions';
 import { useBusinessInfo } from '@/hooks/use-business-info';
 import ReceiptPDF from './ReceiptPDF';
 
@@ -33,7 +32,6 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
   const { businessInfo } = useBusinessInfo();
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   
   const brandColors = useMemo(() => ({
@@ -75,31 +73,6 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
     }
   };
 
-  const handleGenerateWithAI = async () => {
-    setIsGeneratingAI(true);
-    const result = await generatePdfWithAI(invoice);
-    setIsGeneratingAI(false);
-
-    if (result.success && result.dataUri) {
-        toast({
-            title: 'AI PDF Generated',
-            description: 'The AI-enhanced PDF is ready.',
-        });
-        const link = document.createElement('a');
-        link.href = result.dataUri;
-        link.download = `ai-invoice-${invoice.id.slice(0, 8)}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } else {
-        toast({
-            title: 'AI Generation Failed',
-            description: result.error,
-            variant: 'destructive',
-        });
-    }
-  };
-
   const statusColors = {
     Paid: 'bg-green-100 text-green-800 border-green-200',
     Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -123,6 +96,11 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
             <div className="p-8 bg-white text-black" ref={pdfRef}>
                 <header className="flex justify-between items-start pb-8">
                     <div>
+                        {businessInfo.logoImage && (
+                          <div className="mb-4">
+                            <Image src={businessInfo.logoImage} alt="Business Logo" width={120} height={120} className="object-contain" />
+                          </div>
+                        )}
                         <h1 className="text-4xl font-bold" style={{ color: brandColors.primary }}>{businessInfo.businessName || 'Your Company'}</h1>
                         <p className="text-gray-500">{businessInfo.address}</p>
                         <div className="flex items-center gap-4 mt-2 text-gray-600">
@@ -232,10 +210,6 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                        <Receipt className="mr-2 h-4 w-4" /> Download Receipt
                    </Button>
                 )}
-                <Button variant="secondary" onClick={handleGenerateWithAI} disabled={isGeneratingAI}>
-                    {isGeneratingAI ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    AI
-                </Button>
                 <Button onClick={handleDownloadPdf} disabled={isDownloading}>
                     {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                     Download

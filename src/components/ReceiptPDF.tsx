@@ -77,6 +77,11 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
           <div className="p-8 bg-white text-black" ref={pdfRef}>
             <header className="flex justify-between items-start pb-8">
               <div>
+                 {businessInfo.logoImage && (
+                    <div className="mb-4">
+                        <Image src={businessInfo.logoImage} alt="Business Logo" width={120} height={120} className="object-contain" />
+                    </div>
+                )}
                 <h1 className="text-3xl font-bold" style={{ color: brandColors.primary }}>{businessInfo.businessName || 'Your Company'}</h1>
                 <p className="text-gray-500">{businessInfo.address}</p>
                  <div className="flex items-center gap-4 mt-2 text-gray-600">

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc, DocumentReference } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Invoice, InvoiceStatus } from '@/lib/types';
+import type { Invoice, InvoiceStatus, Receipt } from '@/lib/types';
 import { isPast, parseISO } from 'date-fns';
 import { useAuth } from './use-auth';
 
@@ -50,7 +50,7 @@ export function useInvoices() {
         } as Invoice;
         invoicesData.push(invoice);
       });
-      setInvoices(invoicesData);
+      setInvoices(invoicesData.sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()));
       setIsLoaded(true);
     }, (error) => {
       console.error("Error fetching invoices:", error);
@@ -103,6 +103,18 @@ export function useInvoices() {
   const getInvoiceById = useCallback((invoiceId: string | null) => {
     return invoices.find(inv => inv.id === invoiceId) || null;
   }, [invoices]);
+  
+  const addReceipt = useCallback(async (receiptData: Receipt): Promise<DocumentReference> => {
+    if (!user) throw new Error("User not authenticated");
+    try {
+      const receiptRef = await addDoc(collection(db, 'users', user.uid, 'receipts'), receiptData);
+      return receiptRef;
+    } catch (error) {
+      console.error("Error adding receipt: ", error);
+      throw error;
+    }
+  }, [user]);
+
 
   return {
     invoices,
@@ -111,5 +123,6 @@ export function useInvoices() {
     updateInvoice,
     deleteInvoice,
     getInvoiceById,
+    addReceipt,
   };
 }

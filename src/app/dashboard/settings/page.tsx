@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { BusinessInfo } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { Separator } from '@/components/ui/separator';
 
 const businessInfoSchema = z.object({
     businessName: z.string().min(1, 'Business name is required'),
@@ -23,6 +24,7 @@ const businessInfoSchema = z.object({
     primaryColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
     accentColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
     signatureImage: z.string().optional(),
+    logoImage: z.string().optional(),
 });
 
 export default function SettingsPage() {
@@ -40,6 +42,17 @@ export default function SettingsPage() {
             title: 'Settings Saved',
             description: 'Your business information has been updated.',
         });
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'logoImage' | 'signatureImage') => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                form.setValue(fieldName, reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
     };
     
     if (!isLoaded) {
@@ -172,6 +185,33 @@ export default function SettingsPage() {
                                     )}
                                 />
                             </div>
+                            
+                            <Separator />
+                            
+                            <FormField
+                                control={form.control}
+                                name="logoImage"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Logo</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="file"
+                                                accept="image/png, image/jpeg"
+                                                onChange={(e) => handleFileUpload(e, 'logoImage')}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>Upload a PNG or JPG file. Recommended size: 200x100 pixels.</FormDescription>
+                                        {form.watch('logoImage') && (
+                                            <div className="mt-2 p-2 border rounded-md w-32 h-32 relative">
+                                                <Image src={form.watch('logoImage')!} alt="Logo preview" layout="fill" objectFit="contain" />
+                                            </div>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                              <FormField
                                 control={form.control}
                                 name="signatureImage"
@@ -182,16 +222,7 @@ export default function SettingsPage() {
                                              <Input 
                                                 type="file" 
                                                 accept="image/png, image/jpeg"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            form.setValue('signatureImage', reader.result as string);
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }}
+                                                onChange={(e) => handleFileUpload(e, 'signatureImage')}
                                             />
                                         </FormControl>
                                         <FormDescription>
