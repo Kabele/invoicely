@@ -55,6 +55,7 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
         const data = docSnap.data();
         setBusinessInfoState({ ...defaultBusinessInfo, ...data } as BusinessInfo);
       } else {
+        // If doc doesn't exist, create it with user's email
         const initialInfo = { ...defaultBusinessInfo, email: user.email || '' };
         setDoc(docRef, { email: user.email }, { merge: true });
         setBusinessInfoState(initialInfo);
@@ -62,7 +63,7 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
       setIsLoaded(true);
     }, (error) => {
       console.error("Failed to load business info from Firestore:", error);
-      setIsLoaded(true);
+      setIsLoaded(true); // Still set to loaded to not block UI
     });
 
     return () => unsubscribe();
@@ -72,18 +73,14 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
     if (user) {
       try {
         const docRef = doc(db, 'users', user.uid);
-        // Ensure email from auth is preserved if it exists
-        const infoToSave = { ...newInfo };
-        if (user.email && !infoToSave.email) {
-            infoToSave.email = user.email;
-        }
-        await setDoc(docRef, infoToSave, { merge: true });
-        // The state will be updated by the onSnapshot listener, but we can update it here for immediate feedback
-        setBusinessInfoState(prev => ({...prev, ...infoToSave}));
+        await setDoc(docRef, newInfo, { merge: true });
+        // State will be updated by the onSnapshot listener, no need to set it here
       } catch (error) {
         console.error('Failed to save business info to Firestore:', error);
-        throw error;
+        throw error; // Re-throw to be caught in the component
       }
+    } else {
+        throw new Error('User not authenticated');
     }
   }, [user]);
 
@@ -112,3 +109,5 @@ export const useBusinessInfo = () => {
   }
   return context;
 };
+
+    

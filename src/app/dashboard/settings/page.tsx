@@ -32,6 +32,7 @@ const businessInfoSchema = z.object({
 export default function SettingsPage() {
     const { businessInfo, setBusinessInfo, uploadFile, isLoaded } = useBusinessInfo();
     const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
     const [isUploadingSignature, setIsUploadingSignature] = useState(false);
 
@@ -40,15 +41,6 @@ export default function SettingsPage() {
         values: businessInfo,
     });
     
-    // This effect ensures the form is updated when businessInfo loads from Firestore
-    // or when it changes.
-    form.watch((value, { name, type }) => {
-        if (type === 'change' && businessInfo[name as keyof BusinessInfo] !== value[name as keyof BusinessInfo]) {
-            // A field has changed, could trigger autosave or just keep state
-        }
-    });
-
-    // Reset form with new businessInfo when it is loaded
     useEffect(() => {
         if(isLoaded) {
             form.reset(businessInfo);
@@ -56,12 +48,23 @@ export default function SettingsPage() {
     }, [businessInfo, isLoaded, form]);
 
 
-    const onSubmit = (data: BusinessInfo) => {
-        setBusinessInfo(data);
-        toast({
-            title: 'Settings Saved',
-            description: 'Your business information has been updated.',
-        });
+    const onSubmit = async (data: BusinessInfo) => {
+        setIsSubmitting(true);
+        try {
+            await setBusinessInfo(data);
+            toast({
+                title: 'Settings Saved',
+                description: 'Your business information has been updated.',
+            });
+        } catch (error) {
+            toast({
+                title: 'Error Saving',
+                description: 'Could not save your settings.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'logoImage' | 'signatureImage') => {
@@ -73,8 +76,7 @@ export default function SettingsPage() {
             try {
                 const downloadURL = await uploadFile(file, `images/${fieldName}`);
                 form.setValue(fieldName, downloadURL, { shouldDirty: true });
-                // We also update the businessInfo directly to save the change immediately
-                await setBusinessInfo({ ...form.getValues(), [fieldName]: downloadURL });
+                await setBusinessInfo({ [fieldName]: downloadURL });
 
                 toast({
                     title: 'Image Uploaded',
@@ -298,7 +300,10 @@ export default function SettingsPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit">Save Changes</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="animate-spin mr-2" />}
+                                Save Changes
+                            </Button>
                         </form>
                     </Form>
                 </CardContent>
@@ -306,3 +311,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    
