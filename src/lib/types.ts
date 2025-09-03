@@ -34,6 +34,7 @@ export type Receipt = {
 export type BusinessInfo = {
     businessName: string;
     address: string;
+    accountName: string;
     accountNumber: string;
     socials: string;
     email: string;

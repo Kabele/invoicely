@@ -17,6 +17,7 @@ interface BusinessInfoContextType {
 const defaultBusinessInfo: BusinessInfo = {
     businessName: '',
     address: '',
+    accountName: '',
     accountNumber: '',
     socials: '',
     email: '',

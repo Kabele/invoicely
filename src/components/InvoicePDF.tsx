@@ -184,7 +184,10 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                  {businessInfo.accountNumber && (
                     <div className="mt-8">
                         <h4 className="font-semibold mb-1" style={{ color: brandColors.accent }}>Payment Details</h4>
-                        <p className="text-gray-500 text-sm">Account Number: {businessInfo.accountNumber}</p>
+                        <p className="text-gray-500 text-sm">
+                            {businessInfo.accountName ? `${businessInfo.accountName} - ` : ''}
+                            {businessInfo.accountNumber}
+                        </p>
                     </div>
                 )}
 

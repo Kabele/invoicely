@@ -13,7 +13,7 @@ import { BusinessInfo } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const businessInfoSchema = z.object({
     businessName: z.string().min(1, 'Business name is required'),
@@ -21,6 +21,7 @@ const businessInfoSchema = z.object({
     email: z.string().email('Invalid email address'),
     website: z.string().url('Invalid URL').optional().or(z.literal('')),
     socials: z.string().optional(),
+    accountName: z.string().optional(),
     accountNumber: z.string().optional(),
     primaryColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
     accentColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
@@ -177,10 +178,23 @@ export default function SettingsPage() {
                             />
                             <FormField
                                 control={form.control}
+                                name="accountName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Bank Account Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Your Name or Company Name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
                                 name="accountNumber"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Bank Account Number</FormLabel>
+                                        <FormLabel>Bank Account Number - Bank Name</FormLabel>
                                         <FormControl>
                                             <Input placeholder="0123456789 - Bank Name" {...field} />
                                         </FormControl>

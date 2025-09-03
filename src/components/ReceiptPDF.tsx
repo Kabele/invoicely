@@ -127,7 +127,10 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
                 {businessInfo.accountNumber && (
                 <div className="text-right">
                     <h4 className="font-semibold mb-1" style={{ color: brandColors.accent }}>Paid To</h4>
-                    <p className="text-gray-500 text-sm">{businessInfo.businessName} - {businessInfo.accountNumber}</p>
+                    <p className="text-gray-500 text-sm">
+                        {businessInfo.accountName ? `${businessInfo.accountName} - ` : ''} 
+                        {businessInfo.businessName} - {businessInfo.accountNumber}
+                    </p>
                 </div>
                 )}
             </div>
