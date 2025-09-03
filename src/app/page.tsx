@@ -58,6 +58,9 @@ export default function LandingPage() {
       </main>
 
       <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground">
+        <div className="flex justify-center gap-4 mb-2">
+            <Link href="/about" className="text-sm hover:underline">About Us</Link>
+        </div>
         <p>&copy; {new Date().getFullYear()} InvoiceFast. All rights reserved.</p>
       </footer>
     </div>

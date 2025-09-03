@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, LayoutGrid, Settings, LogOut } from 'lucide-react';
+import { FileText, LayoutGrid, Settings, LogOut, Info } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -22,6 +22,11 @@ export default function Sidebar() {
       href: '/dashboard/settings',
       label: 'Settings',
       icon: Settings,
+    },
+    {
+      href: '/about',
+      label: 'About',
+      icon: Info,
     },
   ];
 
