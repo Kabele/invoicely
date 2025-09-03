@@ -13,6 +13,7 @@ import { BusinessInfo } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
 
 const businessInfoSchema = z.object({
     businessName: z.string().min(1, 'Business name is required'),
@@ -28,13 +29,31 @@ const businessInfoSchema = z.object({
 });
 
 export default function SettingsPage() {
-    const { businessInfo, setBusinessInfo, isLoaded } = useBusinessInfo();
+    const { businessInfo, setBusinessInfo, uploadFile, isLoaded } = useBusinessInfo();
     const { toast } = useToast();
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [isUploadingSignature, setIsUploadingSignature] = useState(false);
 
     const form = useForm<BusinessInfo>({
         resolver: zodResolver(businessInfoSchema),
         values: businessInfo,
     });
+    
+    // This effect ensures the form is updated when businessInfo loads from Firestore
+    // or when it changes.
+    form.watch((value, { name, type }) => {
+        if (type === 'change' && businessInfo[name as keyof BusinessInfo] !== value[name as keyof BusinessInfo]) {
+            // A field has changed, could trigger autosave or just keep state
+        }
+    });
+
+    // Reset form with new businessInfo when it is loaded
+    useEffect(() => {
+        if(isLoaded) {
+            form.reset(businessInfo);
+        }
+    }, [businessInfo, isLoaded, form]);
+
 
     const onSubmit = (data: BusinessInfo) => {
         setBusinessInfo(data);
@@ -44,14 +63,32 @@ export default function SettingsPage() {
         });
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'logoImage' | 'signatureImage') => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'logoImage' | 'signatureImage') => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                form.setValue(fieldName, reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            if (fieldName === 'logoImage') setIsUploadingLogo(true);
+            if (fieldName === 'signatureImage') setIsUploadingSignature(true);
+            
+            try {
+                const downloadURL = await uploadFile(file, `images/${fieldName}`);
+                form.setValue(fieldName, downloadURL, { shouldDirty: true });
+                // We also update the businessInfo directly to save the change immediately
+                await setBusinessInfo({ ...form.getValues(), [fieldName]: downloadURL });
+
+                toast({
+                    title: 'Image Uploaded',
+                    description: 'Your image has been successfully saved.',
+                });
+            } catch (error) {
+                 toast({
+                    title: 'Upload Failed',
+                    description: 'There was a problem uploading your image.',
+                    variant: 'destructive',
+                });
+            } finally {
+                if (fieldName === 'logoImage') setIsUploadingLogo(false);
+                if (fieldName === 'signatureImage') setIsUploadingSignature(false);
+            }
         }
     };
     
@@ -199,10 +236,12 @@ export default function SettingsPage() {
                                                 type="file"
                                                 accept="image/png, image/jpeg"
                                                 onChange={(e) => handleFileUpload(e, 'logoImage')}
+                                                disabled={isUploadingLogo}
                                             />
                                         </FormControl>
                                         <FormDescription>Upload a PNG or JPG file. Recommended size: 200x100 pixels.</FormDescription>
-                                        {form.watch('logoImage') && (
+                                        {isUploadingLogo && <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Uploading...</div>}
+                                        {form.watch('logoImage') && !isUploadingLogo && (
                                             <div className="mt-2 p-2 border rounded-md w-32 h-32 relative">
                                                 <Image src={form.watch('logoImage')!} alt="Logo preview" layout="fill" objectFit="contain" />
                                             </div>
@@ -223,12 +262,14 @@ export default function SettingsPage() {
                                                 type="file" 
                                                 accept="image/png, image/jpeg"
                                                 onChange={(e) => handleFileUpload(e, 'signatureImage')}
+                                                disabled={isUploadingSignature}
                                             />
                                         </FormControl>
                                         <FormDescription>
                                             Upload a PNG or JPG file. Recommended size: 200x100 pixels.
                                         </FormDescription>
-                                        {form.watch('signatureImage') && (
+                                        {isUploadingSignature && <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Uploading...</div>}
+                                        {form.watch('signatureImage') && !isUploadingSignature && (
                                             <div className="mt-2 p-2 border rounded-md">
                                                 <Image 
                                                     src={form.watch('signatureImage')!} 

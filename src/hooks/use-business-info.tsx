@@ -1,14 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import type { BusinessInfo } from '@/lib/types';
 
 interface BusinessInfoContextType {
   businessInfo: BusinessInfo;
-  setBusinessInfo: (info: BusinessInfo) => void;
+  setBusinessInfo: (info: Partial<BusinessInfo>) => Promise<void>;
+  uploadFile: (file: File, path: string) => Promise<string>;
   isLoaded: boolean;
 }
 
@@ -27,7 +29,8 @@ const defaultBusinessInfo: BusinessInfo = {
 
 const BusinessInfoContext = createContext<BusinessInfoContextType>({
   businessInfo: defaultBusinessInfo,
-  setBusinessInfo: () => {},
+  setBusinessInfo: async () => {},
+  uploadFile: async () => '',
   isLoaded: false,
 });
 
@@ -51,8 +54,7 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
         const data = docSnap.data();
         setBusinessInfoState({ ...defaultBusinessInfo, ...data } as BusinessInfo);
       } else {
-        // If the doc doesn't exist, we create it with the user's email
-        const initialInfo = { ...defaultBusinessInfo, email: user.email };
+        const initialInfo = { ...defaultBusinessInfo, email: user.email || '' };
         setDoc(docRef, { email: user.email }, { merge: true });
         setBusinessInfoState(initialInfo);
       }
@@ -65,22 +67,37 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
     return () => unsubscribe();
   }, [user]);
 
-  const setBusinessInfo = async (newInfo: BusinessInfo) => {
+  const setBusinessInfo = useCallback(async (newInfo: Partial<BusinessInfo>) => {
     if (user) {
       try {
-        // Ensure email from auth is preserved
-        const infoToSave = { ...newInfo, email: user.email };
-        await setDoc(doc(db, 'users', user.uid), infoToSave, { merge: true });
-        // The state will be updated by the onSnapshot listener
+        const docRef = doc(db, 'users', user.uid);
+        // Ensure email from auth is preserved if it exists
+        const infoToSave = { ...newInfo };
+        if (user.email && !infoToSave.email) {
+            infoToSave.email = user.email;
+        }
+        await setDoc(docRef, infoToSave, { merge: true });
+        // The state will be updated by the onSnapshot listener, but we can update it here for immediate feedback
+        setBusinessInfoState(prev => ({...prev, ...infoToSave}));
       } catch (error) {
         console.error('Failed to save business info to Firestore:', error);
+        throw error;
       }
     }
-  };
+  }, [user]);
+
+  const uploadFile = useCallback(async (file: File, path: string): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+    const storageRef = ref(storage, `users/${user.uid}/${path}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  }, [user]);
 
   const value = {
     businessInfo,
     setBusinessInfo,
+    uploadFile,
     isLoaded,
   };
 
