@@ -21,7 +21,7 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const { addInvoice, updateInvoice } = useInvoices();
+  const { invoices, addInvoice, updateInvoice } = useInvoices();
   const { toast } = useToast();
   
   const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
@@ -56,7 +56,7 @@ export default function DashboardLayout({
   };
   
   const handleInvoiceFormSubmit = (invoiceData: Invoice) => {
-    if (invoiceData.id && invoices.find(i => i.id === invoiceData.id)) {
+    if (activeInvoice && invoices.find(i => i.id === invoiceData.id)) {
       updateInvoice(invoiceData);
       toast({ title: 'Invoice Updated', description: 'Your invoice has been successfully updated.' });
     } else {
@@ -77,10 +77,6 @@ export default function DashboardLayout({
     const event = new CustomEvent('generateReceipt', { detail: receiptData });
     window.dispatchEvent(event);
   };
-
-
-  const { invoices } = useInvoices();
-
 
   if (loading || !user) {
     return (
