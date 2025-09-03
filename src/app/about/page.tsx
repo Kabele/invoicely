@@ -36,6 +36,9 @@ export default function AboutPage() {
             <p>
               InvoiceFast is a modern, streamlined invoicing solution designed for freelancers, small businesses, and entrepreneurs. Our mission is to simplify your financial workflow, allowing you to create, manage, and track invoices with unparalleled ease. We handle the paperwork so you can focus on what matters most: growing your business.
             </p>
+            <p className="border-l-4 pl-4 italic">
+                I developed this platform to simplify the process of issuing invoices and receipts to clients while on the go and to maintain accurate records of all transactions. I wanted to share it with others who might face similar challenges and could benefit from a convenient solution. I am open to adding new features based on user feedback to make the platform even better.
+            </p>
             <div>
                 <h3 className="font-semibold text-lg text-card-foreground mb-3">Key Features:</h3>
                 <ul className="space-y-2">

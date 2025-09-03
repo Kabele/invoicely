@@ -61,6 +61,15 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div className="text-center max-w-3xl mx-auto">
+                <h2 className="text-3xl font-bold mb-4">About InvoiceFast</h2>
+                <p className="text-muted-foreground">
+                InvoiceFast was born from a simple need: a straightforward way for freelancers and small businesses to manage their finances without getting bogged down by complex software. It's a tool designed to be fast, intuitive, and powerful, helping you get paid faster and keep your records immaculate. We handle the paperwork so you can focus on what you do best.
+                </p>
+            </div>
+        </section>
       </main>
 
       <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground">
