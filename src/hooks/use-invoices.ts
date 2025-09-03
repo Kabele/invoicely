@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { Invoice, InvoiceStatus } from '@/lib/types';
 import { isPast, parseISO } from 'date-fns';
 import { useAuth } from './use-auth';
@@ -25,66 +27,78 @@ export function useInvoices() {
   const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setInvoices([]);
+      setIsLoaded(true);
+      return;
+    }
+
+    setIsLoaded(false);
+    const q = query(collection(db, 'users', user.uid, 'invoices'));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const invoicesData: Invoice[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const invoice = {
+          id: doc.id,
+          ...data,
+          status: getInvoiceStatus(data as Invoice),
+          total: calculateTotal(data as Invoice)
+        } as Invoice;
+        invoicesData.push(invoice);
+      });
+      setInvoices(invoicesData);
+      setIsLoaded(true);
+    }, (error) => {
+      console.error("Error fetching invoices:", error);
+      setIsLoaded(true);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
   
-  const getStorageKey = useCallback(() => {
-    return user ? `invoices_${user.uid}` : null;
+  const addInvoice = useCallback(async (newInvoiceData: Omit<Invoice, 'id' | 'status' | 'total'>) => {
+      if (!user) throw new Error("User not authenticated");
+      const total = calculateTotal(newInvoiceData);
+      const status = getInvoiceStatus(newInvoiceData);
+      const finalInvoice = { ...newInvoiceData, total, status };
+
+      try {
+        await addDoc(collection(db, 'users', user.uid, 'invoices'), finalInvoice);
+      } catch (error) {
+        console.error("Error adding invoice: ", error);
+        throw error;
+      }
   }, [user]);
 
-  useEffect(() => {
-    const storageKey = getStorageKey();
-    if (!storageKey) {
-        setIsLoaded(true);
-        setInvoices([]); // Clear invoices on logout
-        return;
-    };
+  const updateInvoice = useCallback(async (updatedInvoice: Invoice) => {
+    if (!user) throw new Error("User not authenticated");
+    const { id, ...dataToUpdate } = updatedInvoice;
+    const total = calculateTotal(dataToUpdate);
+    const status = getInvoiceStatus(dataToUpdate);
+    const finalInvoice = { ...dataToUpdate, total, status };
+    
     try {
-      const storedInvoices = localStorage.getItem(storageKey);
-      if (storedInvoices) {
-        const parsedInvoices: Invoice[] = JSON.parse(storedInvoices);
-        const updatedInvoices = parsedInvoices.map(invoice => ({
-            ...invoice,
-            status: getInvoiceStatus(invoice),
-            total: calculateTotal(invoice)
-        }));
-        setInvoices(updatedInvoices);
-      } else {
-        setInvoices([]); // No invoices for this user yet
-      }
+        const invoiceRef = doc(db, 'users', user.uid, 'invoices', id);
+        await updateDoc(invoiceRef, finalInvoice);
     } catch (error) {
-      console.error('Failed to load invoices from local storage:', error);
-    } finally {
-        setIsLoaded(true);
+        console.error("Error updating invoice: ", error);
+        throw error;
     }
-  }, [getStorageKey]);
+  }, [user]);
 
-  useEffect(() => {
-    const storageKey = getStorageKey();
-    if(isLoaded && storageKey){
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(invoices));
-        } catch (error) {
-            console.error('Failed to save invoices to local storage:', error);
-        }
+  const deleteInvoice = useCallback(async (invoiceId: string) => {
+    if (!user) throw new Error("User not authenticated");
+    try {
+        await deleteDoc(doc(db, 'users', user.uid, 'invoices', invoiceId));
+    } catch (error) {
+        console.error("Error deleting invoice: ", error);
+        throw error;
     }
-  }, [invoices, isLoaded, getStorageKey]);
-
-  const addInvoice = useCallback((newInvoiceData: Invoice) => {
-    const total = calculateTotal(newInvoiceData);
-    const status = getInvoiceStatus(newInvoiceData);
-    const finalInvoice = { ...newInvoiceData, total, status };
-    setInvoices(prev => [...prev, finalInvoice]);
-  }, []);
-
-  const updateInvoice = useCallback((updatedInvoice: Invoice) => {
-    const total = calculateTotal(updatedInvoice);
-    const status = getInvoiceStatus(updatedInvoice);
-    const finalInvoice = { ...updatedInvoice, total, status };
-    setInvoices(prev => prev.map(inv => (inv.id === updatedInvoice.id ? finalInvoice : inv)));
-  }, []);
-
-  const deleteInvoice = useCallback((invoiceId: string) => {
-    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
-  }, []);
+  }, [user]);
 
   const getInvoiceById = useCallback((invoiceId: string | null) => {
     return invoices.find(inv => inv.id === invoiceId) || null;

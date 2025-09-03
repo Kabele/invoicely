@@ -26,8 +26,8 @@ const lineItemSchema = z.object({
   unitPrice: z.coerce.number().min(0.01, 'Price must be positive'),
 });
 
-const invoiceSchema = z.object({
-  id: z.string(),
+// We Omit the fields that will be calculated or come from the backend
+const invoiceFormSchema = z.object({
   clientName: z.string().min(1, 'Client name is required'),
   projectDescription: z.string().min(1, 'Project description is required'),
   dueDate: z.date({ required_error: 'Due date is required' }),
@@ -38,7 +38,7 @@ const invoiceSchema = z.object({
   notes: z.string().optional(),
 });
 
-type InvoiceFormValues = z.infer<typeof invoiceSchema>;
+type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
 interface InvoiceFormProps {
   isOpen: boolean;
@@ -62,9 +62,9 @@ const categoryConditions: Record<InvoiceCategory, { notes: string, taxRate: numb
 
 export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }: InvoiceFormProps) {
   const form = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceSchema),
-    defaultValues: useMemo(() => ({
-      id: invoice?.id || crypto.randomUUID(),
+    resolver: zodResolver(invoiceFormSchema),
+    // `useMemo` is not strictly necessary here but can be a good practice
+    defaultValues: {
       clientName: invoice?.clientName || '',
       projectDescription: invoice?.projectDescription || '',
       dueDate: invoice ? parseISO(invoice.dueDate) : new Date(),
@@ -73,7 +73,7 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
       category: invoice?.category || 'service',
       taxRate: invoice?.taxRate || 0,
       notes: invoice?.notes || '',
-    }), [invoice]),
+    },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -108,21 +108,21 @@ export default function InvoiceForm({ isOpen, onOpenChange, onSubmit, invoice }:
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        id: invoice?.id || crypto.randomUUID(),
         clientName: invoice?.clientName || '',
         projectDescription: invoice?.projectDescription || '',
         dueDate: invoice ? parseISO(invoice.dueDate) : new Date(),
         lineItems: invoice?.lineItems && invoice.lineItems.length > 0 ? invoice.lineItems : [{ ...defaultLineItem, id: crypto.randomUUID() }],
         isPaid: invoice?.isPaid || false,
         category: invoice?.category || 'service',
-        taxRate: invoice?.taxRate || categoryConditions[invoice?.category || 'service'].taxRate,
-        notes: invoice?.notes || categoryConditions[invoice?.category || 'service'].notes,
+        taxRate: invoice?.taxRate ?? categoryConditions[invoice?.category || 'service'].taxRate,
+        notes: invoice?.notes ?? categoryConditions[invoice?.category || 'service'].notes,
       });
     }
   }, [isOpen, invoice, form]);
 
   const handleFormSubmit = (values: InvoiceFormValues) => {
     const finalInvoice: Invoice = {
+      id: invoice?.id || '', // Keep existing id or it will be set by Firestore
       ...values,
       dueDate: values.dueDate.toISOString(),
       status: 'Pending', // Status is recalculated in useInvoices hook

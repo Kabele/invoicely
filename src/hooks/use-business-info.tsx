@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
 import type { BusinessInfo } from '@/lib/types';
 
 interface BusinessInfoContextType {
@@ -33,41 +35,40 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
   const [businessInfo, setBusinessInfoState] = useState<BusinessInfo>(defaultBusinessInfo);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const getStorageKey = useCallback(() => {
-    return user ? `businessInfo_${user.uid}` : null;
+  useEffect(() => {
+    if (!user) {
+      setBusinessInfoState(defaultBusinessInfo);
+      setIsLoaded(true);
+      return;
+    }
+
+    setIsLoaded(false);
+    const docRef = doc(db, 'users', user.uid);
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setBusinessInfoState({ ...defaultBusinessInfo, ...docSnap.data() } as BusinessInfo);
+      } else {
+        setBusinessInfoState(defaultBusinessInfo);
+      }
+      setIsLoaded(true);
+    }, (error) => {
+      console.error("Failed to load business info from Firestore:", error);
+      setIsLoaded(true);
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
-  useEffect(() => {
-    const storageKey = getStorageKey();
-    if (!storageKey) {
-        setIsLoaded(true);
-        setBusinessInfoState(defaultBusinessInfo); // Reset on logout
-        return;
-    }
-    try {
-      const storedInfo = localStorage.getItem(storageKey);
-      if (storedInfo) {
-        setBusinessInfoState(JSON.parse(storedInfo));
-      } else {
-        setBusinessInfoState(defaultBusinessInfo); // Set default if nothing is stored
+  const setBusinessInfo = async (newInfo: BusinessInfo) => {
+    if (user) {
+      try {
+        const completeInfo = { ...businessInfo, ...newInfo };
+        await setDoc(doc(db, 'users', user.uid), completeInfo, { merge: true });
+        // The state will be updated by the onSnapshot listener
+      } catch (error) {
+        console.error('Failed to save business info to Firestore:', error);
       }
-    } catch (error) {
-      console.error('Failed to load business info from local storage:', error);
-    } finally {
-        setIsLoaded(true);
-    }
-  }, [getStorageKey]);
-
-  const setBusinessInfo = (newInfo: BusinessInfo) => {
-    const storageKey = getStorageKey();
-    if(storageKey){
-        try {
-            const completeInfo = { ...defaultBusinessInfo, ...newInfo };
-            localStorage.setItem(storageKey, JSON.stringify(completeInfo));
-            setBusinessInfoState(completeInfo);
-        } catch (error) {
-            console.error('Failed to save business info to local storage:', error);
-        }
     }
   };
 

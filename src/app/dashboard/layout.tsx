@@ -21,7 +21,7 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const { invoices, addInvoice, updateInvoice } = useInvoices();
+  const { addInvoice, updateInvoice } = useInvoices();
   const { toast } = useToast();
   
   const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
@@ -55,16 +55,21 @@ export default function DashboardLayout({
     setIsReceiptFormOpen(true);
   };
   
-  const handleInvoiceFormSubmit = (invoiceData: Invoice) => {
-    if (activeInvoice && invoices.find(i => i.id === invoiceData.id)) {
-      updateInvoice(invoiceData);
-      toast({ title: 'Invoice Updated', description: 'Your invoice has been successfully updated.' });
-    } else {
-      addInvoice(invoiceData);
-      toast({ title: 'Invoice Created', description: 'Your new invoice has been successfully created.' });
+  const handleInvoiceFormSubmit = async (invoiceData: Invoice) => {
+    try {
+      if (invoiceData.id) { // If it has an ID, it's an update
+        await updateInvoice(invoiceData);
+        toast({ title: 'Invoice Updated', description: 'Your invoice has been successfully updated.' });
+      } else { // No ID, so it's a new invoice
+        const { id, ...newInvoiceData } = invoiceData;
+        await addInvoice(newInvoiceData as Omit<Invoice, 'id' | 'status' | 'total'>);
+        toast({ title: 'Invoice Created', description: 'Your new invoice has been successfully created.' });
+      }
+      setIsInvoiceFormOpen(false);
+      setActiveInvoice(null);
+    } catch (error) {
+       toast({ title: 'Error', description: 'Failed to save invoice.', variant: 'destructive' });
     }
-    setIsInvoiceFormOpen(false);
-    setActiveInvoice(null);
   };
 
   const handleReceiptFormSubmit = (receiptData: Receipt) => {
