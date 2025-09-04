@@ -6,7 +6,6 @@ import { convertCurrencyFlow } from '@/ai/flows/convert-currency-flow';
 import type { Invoice, BusinessInfo } from '@/lib/types';
 import { auth } from './firebase-admin'; // Use admin auth
 import { db } from '@/lib/firebase-admin'; // Use admin db
-import { doc, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 async function getUserIdFromToken(token: string): Promise<string | null> {
@@ -30,8 +29,8 @@ export async function saveBusinessInfo(businessInfo: BusinessInfo, token: string
         return { success: false, error: 'User not authenticated' };
     }
     try {
-        const docRef = doc(db, 'users', userId);
-        await setDoc(docRef, businessInfo, { merge: true });
+        const docRef = db.collection('users').doc(userId);
+        await docRef.set(businessInfo, { merge: true });
         revalidatePath('/dashboard/settings'); // Revalidate the settings page
         return { success: true, message: 'Business information saved successfully.' };
     } catch (error) {
