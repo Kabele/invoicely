@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Loader2, Link, Globe, Receipt } from 'lucide-react';
+import { Download, Loader2, Link, Globe, Receipt, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 import { Switch } from './ui/switch';
@@ -73,6 +73,10 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const statusColors = {
     Paid: 'bg-green-100 text-green-800 border-green-200',
     Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -89,11 +93,11 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Invoice Preview</DialogTitle>
-          <DialogDescription>Review the invoice details below. You can download it as a PDF.</DialogDescription>
+          <DialogDescription>Review the invoice details below. You can download it as a PDF or print it.</DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[70vh] overflow-y-auto p-1" >
-            <div className="p-8 bg-white text-black" ref={pdfRef}>
+            <div className="p-8 bg-white text-black printable-area" ref={pdfRef}>
                 <header className="flex justify-between items-start pb-8">
                     <div>
                         <h1 className="text-4xl font-bold" style={{ color: brandColors.primary }}>{businessInfo.businessName || 'Your Company'}</h1>
@@ -217,6 +221,10 @@ export default function InvoicePDF({ isOpen, onOpenChange, invoice, onStatusChan
                        <Receipt className="mr-2 h-4 w-4" /> Download Receipt
                    </Button>
                 )}
+                <Button variant="outline" onClick={handlePrint}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print
+                </Button>
                 <Button onClick={handleDownloadPdf} disabled={isDownloading}>
                     {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                     Download

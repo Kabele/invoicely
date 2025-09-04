@@ -9,7 +9,7 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Download, Loader2, Link as LinkIcon, Globe } from 'lucide-react';
+import { Download, Loader2, Link as LinkIcon, Globe, Printer } from 'lucide-react';
 import type { Receipt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useBusinessInfo } from '@/hooks/use-business-info';
@@ -61,6 +61,10 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
   };
@@ -70,11 +74,11 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Receipt Preview</DialogTitle>
-          <DialogDescription>Review the payment receipt below. You can download it as a PDF.</DialogDescription>
+          <DialogDescription>Review the payment receipt below. You can download it as a PDF or print it.</DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[70vh] overflow-y-auto p-1">
-          <div className="p-8 bg-white text-black" ref={pdfRef}>
+          <div className="p-8 bg-white text-black printable-area" ref={pdfRef}>
             <header className="flex justify-between items-start pb-8">
               <div>
                 <h1 className="text-3xl font-bold" style={{ color: brandColors.primary }}>{businessInfo.businessName || 'Your Company'}</h1>
@@ -137,11 +141,15 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
           </div>
         </div>
 
-        <DialogFooter className="pt-4">
-          <Button onClick={handleDownloadPdf} disabled={isDownloading} className="w-full">
-            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Download PDF
-          </Button>
+        <DialogFooter className="pt-4 flex gap-2">
+            <Button variant="outline" onClick={handlePrint} className="w-full">
+                <Printer className="mr-2 h-4 w-4" />
+                Print
+            </Button>
+            <Button onClick={handleDownloadPdf} disabled={isDownloading} className="w-full">
+                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download PDF
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
