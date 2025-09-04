@@ -14,7 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -53,8 +54,8 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-muted/40">
        <header className="absolute top-0 container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <FileText className="h-8 w-8 text-primary" />
+        <Link href="/" className="flex items-center gap-2">
+          <Logo className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">InvoiceFast</h1>
         </Link>
         <div className="flex items-center gap-4">

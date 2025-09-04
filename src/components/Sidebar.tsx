@@ -1,12 +1,14 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, LayoutGrid, Settings, LogOut, Info, ShieldCheck, X } from 'lucide-react';
+import { LayoutGrid, Settings, LogOut, Info, ShieldCheck, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
+import Logo from './Logo';
 
 const superuserEmail = 'kabelecliff@gmail.com';
 
@@ -64,8 +66,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
     >
       <div className="flex items-center justify-between h-20 px-6 border-b">
-        <Link href="/dashboard" className="flex items-center gap-3">
-            <FileText className="h-8 w-8 text-primary" />
+        <Link href="/dashboard" className="flex items-center gap-2">
+            <Logo className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold text-gray-800">InvoiceFast</h1>
         </Link>
          <Button variant="ghost" size="icon" className="md:hidden" onClick={onClose}>

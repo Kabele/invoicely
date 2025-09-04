@@ -1,7 +1,8 @@
+
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import Logo from '@/components/Logo';
 
 export const metadata: Metadata = {
   title: 'InvoiceFast | Simple Invoicing for Nigerian Businesses',
@@ -38,8 +39,8 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <FileText className="h-8 w-8 text-primary" />
+        <Link href="/" className="flex items-center gap-2">
+          <Logo className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">InvoiceFast</h1>
         </Link>
         <div className="flex items-center gap-4">
