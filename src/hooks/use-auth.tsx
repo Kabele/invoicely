@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuthInstance } from '@/lib/firebase';
+import { getAuthInstance, getDb } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import type { User, Auth } from 'firebase/auth';
 
@@ -44,8 +44,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (email: string, password: string) => {
     if (!auth) throw new Error("Auth not initialized");
+
     const { createUserWithEmailAndPassword } = await import('firebase/auth');
-    return createUserWithEmailAndPassword(auth, email, password);
+    const { doc, setDoc } = await import('firebase/firestore');
+    const db = await getDb();
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Create user document in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+            email: user.email,
+        });
+
+        return userCredential;
+    } catch (error) {
+        console.error("Error during sign up:", error);
+        throw error;
+    }
   };
 
   const login = async (email: string, password: string) => {
@@ -86,5 +103,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
