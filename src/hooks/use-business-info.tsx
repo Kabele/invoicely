@@ -2,15 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import type { BusinessInfo } from '@/lib/types';
 
 interface BusinessInfoContextType {
   businessInfo: BusinessInfo;
   setBusinessInfo: (info: Partial<BusinessInfo>) => Promise<void>;
-  uploadFile: (file: File, path: string) => Promise<string>;
   isLoaded: boolean;
 }
 
@@ -24,14 +22,11 @@ const defaultBusinessInfo: BusinessInfo = {
     website: '',
     primaryColor: '#000000',
     accentColor: '#4f46e5',
-    signatureImage: '',
-    logoImage: '',
 };
 
 const BusinessInfoContext = createContext<BusinessInfoContextType>({
   businessInfo: defaultBusinessInfo,
   setBusinessInfo: async () => {},
-  uploadFile: async () => '',
   isLoaded: false,
 });
 
@@ -80,18 +75,9 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
     }
   }, [user]);
 
-  const uploadFile = useCallback(async (file: File, path: string): Promise<string> => {
-    if (!user) throw new Error('User not authenticated');
-    const storageRef = ref(storage, `users/${user.uid}/${path}/${file.name}`);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    return downloadURL;
-  }, [user]);
-
   const value = {
     businessInfo,
     setBusinessInfo,
-    uploadFile,
     isLoaded,
   };
 

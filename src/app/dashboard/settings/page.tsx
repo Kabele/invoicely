@@ -5,14 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useBusinessInfo } from '@/hooks/use-business-info';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { BusinessInfo } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import Image from 'next/image';
-import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 
 const businessInfoSchema = z.object({
@@ -25,16 +23,12 @@ const businessInfoSchema = z.object({
     accountNumber: z.string().optional(),
     primaryColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
     accentColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, 'Invalid hex color').optional(),
-    signatureImage: z.string().optional(),
-    logoImage: z.string().optional(),
 });
 
 export default function SettingsPage() {
-    const { businessInfo, setBusinessInfo, uploadFile, isLoaded } = useBusinessInfo();
+    const { businessInfo, setBusinessInfo, isLoaded } = useBusinessInfo();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-    const [isUploadingSignature, setIsUploadingSignature] = useState(false);
 
     const form = useForm<BusinessInfo>({
         resolver: zodResolver(businessInfoSchema),
@@ -64,33 +58,6 @@ export default function SettingsPage() {
             });
         } finally {
             setIsSubmitting(false);
-        }
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'logoImage' | 'signatureImage') => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (fieldName === 'logoImage') setIsUploadingLogo(true);
-            if (fieldName === 'signatureImage') setIsUploadingSignature(true);
-            
-            try {
-                const downloadURL = await uploadFile(file, `images/${fieldName}`);
-                form.setValue(fieldName, downloadURL, { shouldDirty: true, shouldValidate: true });
-
-                toast({
-                    title: 'Image Ready',
-                    description: 'Your image has been uploaded. Click "Save Changes" to finalize.',
-                });
-            } catch (error) {
-                 toast({
-                    title: 'Upload Failed',
-                    description: 'There was a problem uploading your image.',
-                    variant: 'destructive',
-                });
-            } finally {
-                if (fieldName === 'logoImage') setIsUploadingLogo(false);
-                if (fieldName === 'signatureImage') setIsUploadingSignature(false);
-            }
         }
     };
     
@@ -238,67 +205,6 @@ export default function SettingsPage() {
                                 />
                             </div>
                             
-                            <Separator />
-                            
-                            <FormField
-                                control={form.control}
-                                name="logoImage"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Logo</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="file"
-                                                accept="image/png, image/jpeg"
-                                                onChange={(e) => handleFileUpload(e, 'logoImage')}
-                                                disabled={isUploadingLogo}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>Upload a PNG or JPG file. Recommended size: 200x100 pixels.</FormDescription>
-                                        {isUploadingLogo && <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Uploading...</div>}
-                                        {form.watch('logoImage') && !isUploadingLogo && (
-                                            <div className="mt-2 p-2 border rounded-md w-32 h-32 relative">
-                                                <Image src={form.watch('logoImage')!} alt="Logo preview" layout="fill" objectFit="contain" />
-                                            </div>
-                                        )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                             <FormField
-                                control={form.control}
-                                name="signatureImage"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Signature</FormLabel>
-                                        <FormControl>
-                                             <Input 
-                                                type="file" 
-                                                accept="image/png, image/jpeg"
-                                                onChange={(e) => handleFileUpload(e, 'signatureImage')}
-                                                disabled={isUploadingSignature}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Upload a PNG or JPG file. Recommended size: 200x100 pixels.
-                                        </FormDescription>
-                                        {isUploadingSignature && <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Uploading...</div>}
-                                        {form.watch('signatureImage') && !isUploadingSignature && (
-                                            <div className="mt-2 p-2 border rounded-md">
-                                                <Image 
-                                                    src={form.watch('signatureImage')!} 
-                                                    alt="Signature preview" 
-                                                    width={150} 
-                                                    height={75}
-                                                    className="object-contain" 
-                                                />
-                                            </div>
-                                        )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="animate-spin mr-2" />}
                                 Save Changes
