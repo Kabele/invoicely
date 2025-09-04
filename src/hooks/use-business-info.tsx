@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, deleteField } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import type { BusinessInfo } from '@/lib/types';
@@ -68,7 +69,16 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
     
     try {
       const docRef = doc(db, 'users', user.uid);
+      // First, set/update the new info
       await setDoc(docRef, newInfo, { merge: true });
+      
+      // Then, explicitly delete the old, unused fields if they exist.
+      // This is safe even if the fields are already gone.
+      await updateDoc(docRef, {
+        logoUrl: deleteField(),
+        signatureUrl: deleteField(),
+      });
+
     } catch (error) {
       console.error('Failed to save business info to Firestore:', error);
       throw error;
