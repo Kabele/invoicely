@@ -1,15 +1,14 @@
 
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { doc, onSnapshot, setDoc, updateDoc, deleteField } from 'firebase/firestore';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import type { BusinessInfo } from '@/lib/types';
 
 interface BusinessInfoContextType {
   businessInfo: BusinessInfo;
-  setBusinessInfo: (info: Partial<BusinessInfo>) => Promise<void>;
   isLoaded: boolean;
 }
 
@@ -27,7 +26,6 @@ const defaultBusinessInfo: BusinessInfo = {
 
 const BusinessInfoContext = createContext<BusinessInfoContextType>({
   businessInfo: defaultBusinessInfo,
-  setBusinessInfo: async () => {},
   isLoaded: false,
 });
 
@@ -52,42 +50,24 @@ export function BusinessInfoProvider({ children }: { children: React.ReactNode }
         setBusinessInfoState({ ...defaultBusinessInfo, ...data } as BusinessInfo);
       } else {
         const initialInfo = { ...defaultBusinessInfo, email: user.email || '' };
+        // Create the doc if it doesn't exist, but don't wait for it
         setDoc(docRef, { email: user.email }, { merge: true });
         setBusinessInfoState(initialInfo);
       }
       setIsLoaded(true);
     }, (error) => {
       console.error("Failed to load business info from Firestore:", error);
+      // In case of error, still present the form with defaults
+      setBusinessInfoState({ ...defaultBusinessInfo, email: user.email || '' });
       setIsLoaded(true);
     });
 
     return () => unsubscribe();
   }, [user]);
-
-  const setBusinessInfo = useCallback(async (newInfo: Partial<BusinessInfo>) => {
-    if (!user) throw new Error('User not authenticated');
-    
-    try {
-      const docRef = doc(db, 'users', user.uid);
-      // First, set/update the new info
-      await setDoc(docRef, newInfo, { merge: true });
-      
-      // Then, explicitly delete the old, unused fields if they exist.
-      // This is safe even if the fields are already gone.
-      await updateDoc(docRef, {
-        logoUrl: deleteField(),
-        signatureUrl: deleteField(),
-      });
-
-    } catch (error) {
-      console.error('Failed to save business info to Firestore:', error);
-      throw error;
-    }
-  }, [user]);
+  
 
   const value = {
     businessInfo,
-    setBusinessInfo,
     isLoaded,
   };
 
@@ -101,3 +81,4 @@ export const useBusinessInfo = () => {
   }
   return context;
 };
+

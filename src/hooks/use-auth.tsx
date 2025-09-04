@@ -1,7 +1,15 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, type User } from 'firebase/auth';
+import { 
+    onAuthStateChanged, 
+    signOut as firebaseSignOut, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    getIdToken,
+    type User 
+} from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +19,7 @@ interface AuthContextType {
   signup: (email: string, pass: string) => Promise<any>;
   login: (email: string, pass: string) => Promise<any>;
   logout: () => Promise<any>;
+  getAuthToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   signup: async () => {},
   login: async () => {},
   logout: async () => {},
+  getAuthToken: async () => null,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -48,12 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return firebaseSignOut(auth);
   };
 
+  const getAuthToken = async () => {
+    if (!auth.currentUser) return null;
+    return getIdToken(auth.currentUser);
+  };
+
   const value = {
     user,
     loading,
     signup,
     login,
     logout,
+    getAuthToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -66,3 +82,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

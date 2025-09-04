@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -12,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { BusinessInfo } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { saveBusinessInfo } from '@/lib/actions';
+
 
 const businessInfoSchema = z.object({
     businessName: z.string().min(1, 'Business name is required'),
@@ -26,7 +29,7 @@ const businessInfoSchema = z.object({
 });
 
 export default function SettingsPage() {
-    const { businessInfo, setBusinessInfo, isLoaded } = useBusinessInfo();
+    const { businessInfo, isLoaded } = useBusinessInfo();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,15 +48,16 @@ export default function SettingsPage() {
     const onSubmit = async (data: BusinessInfo) => {
         setIsSubmitting(true);
         try {
-            await setBusinessInfo(data);
+            await saveBusinessInfo(data);
             toast({
                 title: 'Settings Saved',
                 description: 'Your business information has been updated.',
             });
         } catch (error) {
+            console.error("Error from server action:", error);
             toast({
                 title: 'Error Saving',
-                description: 'Could not save your settings.',
+                description: 'Could not save your settings. Please try again.',
                 variant: 'destructive',
             });
         } finally {
@@ -179,8 +183,8 @@ export default function SettingsPage() {
                                             <FormLabel>Primary Brand Color</FormLabel>
                                             <FormControl>
                                                 <div className="flex items-center gap-2">
-                                                    <Input type="color" {...field} className="w-12 h-10 p-1" />
-                                                    <Input type="text" {...field} placeholder="#000000" />
+                                                    <Input type="color" {...field} value={field.value || ''} className="w-12 h-10 p-1" />
+                                                    <Input type="text" {...field} value={field.value || ''} placeholder="#000000" />
                                                 </div>
                                             </FormControl>
                                             <FormMessage />
@@ -195,8 +199,8 @@ export default function SettingsPage() {
                                             <FormLabel>Accent Brand Color</FormLabel>
                                             <FormControl>
                                                 <div className="flex items-center gap-2">
-                                                    <Input type="color" {...field} className="w-12 h-10 p-1" />
-                                                    <Input type="text" {...field} placeholder="#4f46e5" />
+                                                    <Input type="color" {...field} value={field.value || ''} className="w-12 h-10 p-1" />
+                                                    <Input type="text" {...field} value={field.value || ''} placeholder="#4f46e5" />
                                                 </div>
                                             </FormControl>
                                             <FormMessage />
@@ -216,3 +220,4 @@ export default function SettingsPage() {
         </div>
     );
 }
+
