@@ -1,15 +1,25 @@
 
-import { initializeApp, getApps, getApp, App, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, App, cert, ServiceAccount } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-);
+const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
-const app = !getApps().length ? initializeApp({
-    credential: cert(serviceAccount)
-}) : getApp();
+if (!serviceAccountKey) {
+  throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
+}
+
+const serviceAccount: ServiceAccount = JSON.parse(serviceAccountKey);
+
+let app: App;
+
+if (!getApps().length) {
+  app = initializeApp({
+    credential: cert(serviceAccount),
+  });
+} else {
+  app = getApp();
+}
 
 const auth = getAuth(app);
 const db = getFirestore(app);

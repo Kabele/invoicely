@@ -4,37 +4,46 @@
 import { generateClientFriendlyInvoice } from '@/ai/flows/generate-client-friendly-invoice';
 import { convertCurrencyFlow } from '@/ai/flows/convert-currency-flow';
 import type { Invoice, BusinessInfo } from '@/lib/types';
-import { auth, db } from './firebase-admin';
+import { auth } from './firebase-admin'; // Use admin auth
+import { db } from '@/lib/firebase-admin'; // Use admin db
 import { doc, setDoc } from 'firebase/firestore';
 import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 
-async function getUserId(): Promise<string | null> {
-    const authorization = headers().get('Authorization');
-    if (authorization?.startsWith('Bearer ')) {
-        const idToken = authorization.split('Bearer ')[1];
-        try {
-            const decodedToken = await auth.verifyIdToken(idToken);
-            return decodedToken.uid;
-        } catch (error) {
-            console.error('Error verifying auth token:', error);
-            return null;
-        }
+async function getUserIdFromToken(): Promise<string | null> {
+    const authHeader = headers().get('Authorization');
+    if (!authHeader) {
+        console.error('No Authorization header found');
+        return null;
     }
-    return null;
+    const token = authHeader.split('Bearer ')[1];
+    if (!token) {
+        console.error('No token found in Authorization header');
+        return null;
+    }
+    try {
+        const decodedToken = await auth.verifyIdToken(token);
+        return decodedToken.uid;
+    } catch (error) {
+        console.error('Error verifying ID token:', error);
+        return null;
+    }
 }
 
+
 export async function saveBusinessInfo(businessInfo: BusinessInfo) {
-    const userId = await getUserId();
+    const userId = await getUserIdFromToken();
     if (!userId) {
         throw new Error('User not authenticated');
     }
     try {
         const docRef = doc(db, 'users', userId);
         await setDoc(docRef, businessInfo, { merge: true });
-        return { success: true };
+        revalidatePath('/dashboard/settings'); // Revalidate the settings page
+        return { success: true, message: 'Business information saved successfully.' };
     } catch (error) {
         console.error('Error saving business info:', error);
-        throw new Error('Failed to save business info.');
+        return { success: false, error: 'Failed to save business info.' };
     }
 }
 
@@ -60,4 +69,3 @@ export async function convertCurrency(amount: number, from: string, to: string) 
         return { success: false, error: 'Failed to convert currency using AI.' };
     }
 }
-

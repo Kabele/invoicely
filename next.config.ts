@@ -25,20 +25,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async redirects() {
+  async rewrites() {
     return [
       {
-        source: '/',
-        destination: '/dashboard',
-        permanent: true,
-        has: [
-          {
-            type: 'cookie',
-            key: 'firebase-auth', // This is a placeholder, actual key might differ
-          },
-        ],
+        source: '/api/save-settings',
+        destination: '/api/save-settings',
       },
-    ]
+    ];
   },
   async headers() {
     return [
