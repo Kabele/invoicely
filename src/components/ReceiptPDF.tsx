@@ -112,9 +112,9 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
                 </div>
             </div>
             
-            <div className="flex justify-end items-end mt-8">
-                {businessInfo.accountNumber && (
-                <div className="text-right">
+            <div className="flex justify-between items-end mt-8">
+                 {businessInfo.accountNumber && (
+                <div className="text-left">
                     <h4 className="font-semibold mb-1" style={{ color: brandColors.accent }}>Paid To</h4>
                     <p className="text-gray-500 text-sm">
                         {businessInfo.accountName ? `${businessInfo.accountName} - ` : ''} 
@@ -122,6 +122,12 @@ export default function ReceiptPDF({ isOpen, onOpenChange, receipt }: ReceiptPDF
                     </p>
                 </div>
                 )}
+
+                 <div>
+                    <h4 className="font-semibold mb-2" style={{ color: brandColors.accent }}>Authorized Signature</h4>
+                    <div className="w-48 h-12 border-b border-gray-400 mt-8"></div>
+                    <p className="text-gray-500 text-sm mt-2 text-center">{businessInfo.businessName || 'Your Company'}</p>
+                </div>
             </div>
 
             <div className="mt-16 text-center text-gray-500 text-sm">
