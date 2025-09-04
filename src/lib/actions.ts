@@ -39,6 +39,21 @@ export async function saveBusinessInfo(businessInfo: BusinessInfo, token: string
     }
 }
 
+export async function createUserDocument(userId: string, email: string | null) {
+    if (!userId) {
+        return { success: false, error: 'User ID is required.' };
+    }
+    try {
+        const docRef = db.collection('users').doc(userId);
+        await docRef.set({ email: email || '' }, { merge: true });
+        return { success: true, message: 'User document created successfully.' };
+    } catch (error) {
+        console.error('Error creating user document:', error);
+        // We are not re-throwing the error to the client, but returning a structured response
+        return { success: false, error: 'Failed to create user document on the server.' };
+    }
+}
+
 
 export async function generatePdfWithAI(invoice: Invoice) {
   try {

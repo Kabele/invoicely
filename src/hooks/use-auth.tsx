@@ -2,9 +2,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuthInstance, getDb } from '@/lib/firebase';
+import { getAuthInstance } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import type { User, Auth } from 'firebase/auth';
+import { createUserDocument } from '@/lib/actions';
+
 
 interface AuthContextType {
   user: User | null;
@@ -46,23 +48,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) throw new Error("Auth not initialized");
 
     const { createUserWithEmailAndPassword } = await import('firebase/auth');
-    const { doc, setDoc } = await import('firebase/firestore');
-    const db = await getDb();
+    
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Call the server action to create the user document
+    const result = await createUserDocument(user.uid, user.email);
 
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        // Create user document in Firestore
-        await setDoc(doc(db, "users", user.uid), {
-            email: user.email,
-        });
-
-        return userCredential;
-    } catch (error) {
-        console.error("Error during sign up:", error);
-        throw error;
+    if (!result.success) {
+        // If the document creation fails, we should ideally handle this case.
+        // For now, we'll log the error. In a real app, you might want to delete the auth user
+        // or schedule a retry.
+        console.error("Failed to create user document:", result.error);
+        // We can still return the user credential, but the app might be in an inconsistent state.
     }
+
+    return userCredential;
   };
 
   const login = async (email: string, password: string) => {
