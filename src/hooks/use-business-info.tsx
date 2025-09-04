@@ -2,11 +2,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase';
 import type { BusinessInfo } from '@/lib/types';
 import { saveBusinessInfo as saveBusinessInfoAction } from '@/lib/actions';
+import type { Firestore } from 'firebase/firestore';
 
 interface BusinessInfoContextType {
   businessInfo: BusinessInfo;
@@ -34,62 +34,58 @@ const BusinessInfoContext = createContext<BusinessInfoContextType>({
 
 export function BusinessInfoProvider({ children }: { children: React.ReactNode }) {
   const { user, getAuthToken } = useAuth();
+  const [db, setDb] = useState<Firestore | null>(null);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(defaultBusinessInfo);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  useEffect(() => {
+    getDb().then(setDb);
+  }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !db) {
       setBusinessInfo(defaultBusinessInfo);
       setIsLoaded(true);
       return;
     }
 
     setIsLoaded(false);
-    const docRef = doc(db, 'users', user.uid);
-
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setBusinessInfo({ ...defaultBusinessInfo, ...data } as BusinessInfo);
-      } else {
-        // Doc doesn't exist, use default info with user's email
-        setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
-      }
-      setIsLoaded(true);
-    }, (error) => {
-      console.error("Failed to load business info from Firestore:", error);
-      setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
-      setIsLoaded(true);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  const saveBusinessInfo = useCallback(async (info: BusinessInfo) => {
-    const token = await getAuthToken();
-    if (!token) {
-        return { success: false, error: "Authentication token not found." };
-    }
     
-    // We need to wrap the server action call in a custom fetch to pass the auth token.
-    // This is a workaround for Next.js server actions not having built-in auth context propagation yet.
-    try {
-        const response = await fetch('/api/save-settings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(info),
+    const loadFirestore = async () => {
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        const docRef = doc(db, 'users', user.uid);
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setBusinessInfo({ ...defaultBusinessInfo, ...data } as BusinessInfo);
+          } else {
+            // Doc doesn't exist, use default info with user's email
+            setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
+          }
+          setIsLoaded(true);
+        }, (error) => {
+          console.error("Failed to load business info from Firestore:", error);
+          setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
+          setIsLoaded(true);
         });
 
-        if (!response.ok) {
-            const res = await response.json();
-            throw new Error(res.error || 'Failed to save settings.');
+        return unsubscribe;
+    };
+
+    const unsubPromise = loadFirestore();
+
+    return () => {
+        unsubPromise.then(unsub => unsub && unsub());
+    };
+  }, [user, db]);
+
+  const saveBusinessInfo = useCallback(async (info: BusinessInfo) => {
+     try {
+        const token = await getAuthToken();
+        if (!token) {
+          return { success: false, error: 'Authentication token not found.' };
         }
-
-        return await response.json();
-
+        return await saveBusinessInfoAction(info, token);
     } catch (error) {
         console.error(error);
         return { success: false, error: (error as Error).message };

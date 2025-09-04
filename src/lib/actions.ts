@@ -7,18 +7,11 @@ import type { Invoice, BusinessInfo } from '@/lib/types';
 import { auth } from './firebase-admin'; // Use admin auth
 import { db } from '@/lib/firebase-admin'; // Use admin db
 import { doc, setDoc } from 'firebase/firestore';
-import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-async function getUserIdFromToken(): Promise<string | null> {
-    const authHeader = headers().get('Authorization');
-    if (!authHeader) {
-        console.error('No Authorization header found');
-        return null;
-    }
-    const token = authHeader.split('Bearer ')[1];
+async function getUserIdFromToken(token: string): Promise<string | null> {
     if (!token) {
-        console.error('No token found in Authorization header');
+        console.error('No token provided');
         return null;
     }
     try {
@@ -31,10 +24,10 @@ async function getUserIdFromToken(): Promise<string | null> {
 }
 
 
-export async function saveBusinessInfo(businessInfo: BusinessInfo) {
-    const userId = await getUserIdFromToken();
+export async function saveBusinessInfo(businessInfo: BusinessInfo, token: string) {
+    const userId = await getUserIdFromToken(token);
     if (!userId) {
-        throw new Error('User not authenticated');
+        return { success: false, error: 'User not authenticated' };
     }
     try {
         const docRef = doc(db, 'users', userId);

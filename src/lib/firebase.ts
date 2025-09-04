@@ -1,6 +1,7 @@
-import { initializeApp, getApps, getApp, FirebaseOptions } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+
+import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,8 +15,18 @@ const firebaseConfig: FirebaseOptions = {
 
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
 
-// Note: auth is no longer exported from here.
-// It should be initialized with getAuth(app) where needed, like in use-auth.tsx.
-export { app, db };
+// We are not exporting the instances directly anymore.
+// Instead, we export functions that will dynamically import the services.
+
+export const getDb = async (): Promise<Firestore> => {
+    return (await import('firebase/firestore')).getFirestore(app);
+};
+
+export const getAuthInstance = async (): Promise<Auth> => {
+    return (await import('firebase/auth')).getAuth(app);
+};
+
+export { app };
+
+    

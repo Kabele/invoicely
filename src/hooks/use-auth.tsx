@@ -2,18 +2,9 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-    getAuth,
-    onAuthStateChanged, 
-    signOut as firebaseSignOut, 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    getIdToken,
-    type Auth,
-    type User 
-} from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { getAuthInstance } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import type { User, Auth } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -34,35 +25,45 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [auth] = useState(() => getAuth(app));
+  const [auth, setAuth] = useState<Auth | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    getAuthInstance().then(async (authInstance) => {
+        setAuth(authInstance);
+        const { onAuthStateChanged } = await import('firebase/auth');
+        const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+            setUser(user);
+            setLoading(false);
+        });
+        return () => unsubscribe();
     });
+  }, []);
 
-    return () => unsubscribe();
-  }, [auth]);
-
-  const signup = (email: string, password: string) => {
+  const signup = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth not initialized");
+    const { createUserWithEmailAndPassword } = await import('firebase/auth');
     return createUserWithEmailAndPassword(auth, email, password);
   };
 
-  const login = (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth not initialized");
+    const { signInWithEmailAndPassword } = await import('firebase/auth');
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (!auth) throw new Error("Auth not initialized");
+    const { signOut } = await import('firebase/auth');
     router.push('/login');
-    return firebaseSignOut(auth);
+    return signOut(auth);
   };
 
   const getAuthToken = async () => {
-    if (!auth.currentUser) return null;
+    if (!auth?.currentUser) return null;
+    const { getIdToken } = await import('firebase/auth');
     return getIdToken(auth.currentUser);
   };
 
@@ -85,3 +86,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    

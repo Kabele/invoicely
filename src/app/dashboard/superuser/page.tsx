@@ -1,13 +1,14 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collectionGroup, getCountFromServer, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, Receipt } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Firestore } from 'firebase/firestore';
 
 const superuserEmail = 'kabelecliff@gmail.com';
 
@@ -20,8 +21,13 @@ interface Analytics {
 export default function SuperuserDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [db, setDb] = useState<Firestore | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    getDb().then(setDb);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user?.email !== superuserEmail) {
@@ -30,10 +36,12 @@ export default function SuperuserDashboard() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user?.email === superuserEmail) {
+    if (user?.email === superuserEmail && db) {
       const fetchAnalytics = async () => {
         setIsLoading(true);
         try {
+          const { collectionGroup, getCountFromServer, query, where } = await import('firebase/firestore');
+          
           const usersQuery = query(collectionGroup(db, 'users'), where('email', '!=', superuserEmail));
           const usersSnapshot = await getCountFromServer(usersQuery);
           
@@ -57,7 +65,7 @@ export default function SuperuserDashboard() {
 
       fetchAnalytics();
     }
-  }, [user]);
+  }, [user, db]);
 
   if (authLoading || isLoading) {
     return <div className="space-y-4">
