@@ -54,8 +54,9 @@ export function useInvoices() {
             const invoice = {
               id: doc.id,
               ...data,
+              // The 'total' is already calculated and stored in the invoice document.
+              // We only need to calculate the 'status' on the client-side as it can be time-dependent (e.g., 'Overdue').
               status: getInvoiceStatus(data as Invoice),
-              total: calculateTotal(data as Invoice)
             } as Invoice;
             invoicesData.push(invoice);
           });

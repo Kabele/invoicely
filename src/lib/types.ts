@@ -20,7 +20,7 @@ export type Invoice = {
   isPaid: boolean;
   category: InvoiceCategory;
   taxRate: number; // Percentage
-  notes: string;
+  notes?: string;
 };
 
 export type Receipt = {
@@ -34,11 +34,11 @@ export type Receipt = {
 export type BusinessInfo = {
     businessName: string;
     address: string;
-    accountName: string;
-    accountNumber: string;
-    socials: string;
     email: string;
-    website: string;
+    accountName?: string;
+    accountNumber?: string;
+    socials?: string;
+    website?: string;
     primaryColor?: string;
     accentColor?: string;
 };
