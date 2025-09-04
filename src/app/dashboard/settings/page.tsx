@@ -38,7 +38,7 @@ export default function SettingsPage() {
 
     const form = useForm<BusinessInfo>({
         resolver: zodResolver(businessInfoSchema),
-        values: businessInfo,
+        defaultValues: businessInfo,
     });
     
     useEffect(() => {
@@ -75,12 +75,11 @@ export default function SettingsPage() {
             
             try {
                 const downloadURL = await uploadFile(file, `images/${fieldName}`);
-                form.setValue(fieldName, downloadURL, { shouldDirty: true });
-                await setBusinessInfo({ [fieldName]: downloadURL });
+                form.setValue(fieldName, downloadURL, { shouldDirty: true, shouldValidate: true });
 
                 toast({
-                    title: 'Image Uploaded',
-                    description: 'Your image has been successfully saved.',
+                    title: 'Image Ready',
+                    description: 'Your image has been uploaded. Click "Save Changes" to finalize.',
                 });
             } catch (error) {
                  toast({
@@ -311,5 +310,3 @@ export default function SettingsPage() {
         </div>
     );
 }
-
-    
