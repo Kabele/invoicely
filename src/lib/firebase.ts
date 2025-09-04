@@ -14,7 +14,8 @@ const firebaseConfig: FirebaseOptions = {
 
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-export { app, auth, db };
+// Note: auth is no longer exported from here.
+// It should be initialized with getAuth(app) where needed, like in use-auth.tsx.
+export { app, db };

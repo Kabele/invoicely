@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
+    getAuth,
     onAuthStateChanged, 
     signOut as firebaseSignOut, 
     createUserWithEmailAndPassword, 
@@ -10,8 +11,10 @@ import {
     getIdToken,
     type User 
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { app } from '@/lib/firebase'; // Correctly import the initialized app
 import { useRouter } from 'next/navigation';
+
+const auth = getAuth(app); // Get auth instance
 
 interface AuthContextType {
   user: User | null;
@@ -82,4 +85,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
