@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu } from 'lucide-react';
 import { BusinessInfoProvider } from '@/hooks/use-business-info';
 import Header from '@/components/Header';
 import InvoiceForm from '@/components/InvoiceForm';
@@ -12,6 +12,7 @@ import { useInvoices } from '@/hooks/use-invoices';
 import { Invoice, Receipt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Sidebar from '@/components/Sidebar';
+import { Button } from '@/components/ui/button';
 
 export default function DashboardLayout({
   children,
@@ -27,6 +28,7 @@ export default function DashboardLayout({
   const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
   const [isReceiptFormOpen, setIsReceiptFormOpen] = useState(false);
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -96,10 +98,14 @@ export default function DashboardLayout({
 
   return (
     <BusinessInfoProvider>
-      <div className="flex min-h-screen">
-        <Sidebar />
+       <div className="flex min-h-screen">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
-          <Header onCreateInvoice={handleCreateInvoice} onCreateReceipt={handleCreateReceipt} />
+          <Header 
+            onCreateInvoice={handleCreateInvoice} 
+            onCreateReceipt={handleCreateReceipt} 
+            onMenuClick={() => setIsSidebarOpen(true)}
+          />
           <main className="flex-1 p-6 md:p-10">
               {children}
           </main>
