@@ -1,12 +1,9 @@
-
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuthInstance } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import type { User, Auth } from 'firebase/auth';
-import { createUserDocument } from '@/lib/actions';
-
+import type { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -27,60 +24,42 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [auth, setAuth] = useState<Auth | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    getAuthInstance().then(async (authInstance) => {
-        setAuth(authInstance);
-        const { onAuthStateChanged } = await import('firebase/auth');
-        const unsubscribe = onAuthStateChanged(authInstance, (user) => {
-            setUser(user);
-            setLoading(false);
-        });
-        return () => unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
     });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const signup = async (email: string, password: string) => {
-    if (!auth) throw new Error("Auth not initialized");
-
-    const { createUserWithEmailAndPassword } = await import('firebase/auth');
-    
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const newUser = userCredential.user;
-    
-    // Call the server action to create the user document and wait for it to complete.
-    const result = await createUserDocument(newUser.uid, newUser.email);
-
-    if (!result.success) {
-        // If the document creation fails, we must throw an error to prevent login.
-        console.error("Failed to create user document:", result.error);
-        throw new Error(result.error || "Could not create user profile on the server.");
-    }
-
-    return userCredential;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    return data;
   };
 
   const login = async (email: string, password: string) => {
-    if (!auth) throw new Error("Auth not initialized");
-    const { signInWithEmailAndPassword } = await import('firebase/auth');
-    return signInWithEmailAndPassword(auth, email, password);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
   };
 
   const logout = async () => {
-    if (!auth) throw new Error("Auth not initialized");
-    const { signOut } = await import('firebase/auth');
     router.push('/login');
-    return signOut(auth);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   const getAuthToken = async () => {
-    if (!auth?.currentUser) return null;
-    const { getIdToken } = await import('firebase/auth');
-    return getIdToken(auth.currentUser);
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   };
 
   const value = {

@@ -1,14 +1,12 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getDb } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, Receipt } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Firestore } from 'firebase/firestore';
+import { getAnalytics } from '@/lib/actions';
 
 const superuserEmail = 'kabelecliff@gmail.com';
 
@@ -21,14 +19,9 @@ interface Analytics {
 export default function SuperuserDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [db, setDb] = useState<Firestore | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => {
-    getDb().then(setDb);
-  }, []);
-
   useEffect(() => {
     if (!authLoading && user?.email !== superuserEmail) {
       router.replace('/dashboard');
@@ -36,26 +29,14 @@ export default function SuperuserDashboard() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user?.email === superuserEmail && db) {
+    if (user?.email === superuserEmail) {
       const fetchAnalytics = async () => {
         setIsLoading(true);
         try {
-          const { collectionGroup, getCountFromServer, query, where } = await import('firebase/firestore');
-          
-          const usersQuery = query(collectionGroup(db, 'users'), where('email', '!=', superuserEmail));
-          const usersSnapshot = await getCountFromServer(usersQuery);
-          
-          const invoicesQuery = collectionGroup(db, 'invoices');
-          const invoicesSnapshot = await getCountFromServer(invoicesQuery);
-
-          const receiptsQuery = collectionGroup(db, 'receipts');
-          const receiptsSnapshot = await getCountFromServer(receiptsQuery);
-
-          setAnalytics({
-            totalUsers: usersSnapshot.data().count,
-            totalInvoices: invoicesSnapshot.data().count,
-            totalReceipts: receiptsSnapshot.data().count,
-          });
+          const result = await getAnalytics();
+          if (result.success) {
+            setAnalytics(result.analytics);
+          }
         } catch (error) {
           console.error("Error fetching analytics:", error);
         } finally {
@@ -65,7 +46,7 @@ export default function SuperuserDashboard() {
 
       fetchAnalytics();
     }
-  }, [user, db]);
+  }, [user]);
 
   if (authLoading || isLoading) {
     return <div className="space-y-4">

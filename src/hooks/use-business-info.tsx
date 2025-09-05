@@ -1,12 +1,10 @@
-
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { getDb } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { BusinessInfo } from '@/lib/types';
 import { saveBusinessInfo as saveBusinessInfoAction } from '@/lib/actions';
-import type { Firestore } from 'firebase/firestore';
 
 interface BusinessInfoContextType {
   businessInfo: BusinessInfo;
@@ -33,64 +31,55 @@ const BusinessInfoContext = createContext<BusinessInfoContextType>({
 });
 
 export function BusinessInfoProvider({ children }: { children: React.ReactNode }) {
-  const { user, getAuthToken } = useAuth();
-  const [db, setDb] = useState<Firestore | null>(null);
+  const { user } = useAuth();
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(defaultBusinessInfo);
   const [isLoaded, setIsLoaded] = useState(false);
   
   useEffect(() => {
-    getDb().then(setDb);
-  }, []);
-
-  useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setBusinessInfo(defaultBusinessInfo);
       setIsLoaded(true);
       return;
     }
 
     setIsLoaded(false);
-    
-    const loadFirestore = async () => {
-        const { doc, onSnapshot } = await import('firebase/firestore');
-        const docRef = doc(db, 'users', user.uid);
-        const unsubscribe = onSnapshot(docRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setBusinessInfo({ ...defaultBusinessInfo, ...data } as BusinessInfo);
-          } else {
-            // Doc doesn't exist, use default info with user's email
-            setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
-          }
-          setIsLoaded(true);
-        }, (error) => {
-          console.error("Failed to load business info from Firestore:", error);
-          setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
-          setIsLoaded(true);
-        });
 
-        return unsubscribe;
+    const fetchBusinessInfo = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Failed to load business info from Supabase:', error);
+        setBusinessInfo({ ...defaultBusinessInfo, email: user.email || '' });
+      } else {
+        setBusinessInfo({ ...defaultBusinessInfo, ...data });
+      }
+      setIsLoaded(true);
     };
 
-    const unsubPromise = loadFirestore();
+    fetchBusinessInfo();
+
+    const subscription = supabase
+      .channel('public:users')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${user.id}` }, fetchBusinessInfo)
+      .subscribe();
 
     return () => {
-        unsubPromise.then(unsub => unsub && unsub());
+      supabase.removeChannel(subscription);
     };
-  }, [user, db]);
+  }, [user]);
 
   const saveBusinessInfo = useCallback(async (info: BusinessInfo) => {
      try {
-        const token = await getAuthToken();
-        if (!token) {
-          return { success: false, error: 'Authentication token not found.' };
-        }
-        return await saveBusinessInfoAction(info, token);
+        return await saveBusinessInfoAction(info);
     } catch (error) {
         console.error(error);
         return { success: false, error: (error as Error).message };
     }
-  }, [getAuthToken]);
+  }, []);
 
   const value = {
     businessInfo,

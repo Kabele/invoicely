@@ -1,12 +1,11 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getDb } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { Invoice, InvoiceStatus, Receipt } from '@/lib/types';
 import { isPast, parseISO } from 'date-fns';
 import { useAuth } from './use-auth';
-import type { DocumentReference, Firestore } from 'firebase/firestore';
+import type { User } from '@supabase/supabase-js';
 
 const getInvoiceStatus = (invoice: Pick<Invoice, 'isPaid' | 'dueDate'>): InvoiceStatus => {
   if (invoice.isPaid) {
@@ -26,16 +25,11 @@ const calculateTotal = (invoice: Pick<Invoice, 'lineItems' | 'taxRate'>): number
 
 export function useInvoices() {
   const { user } = useAuth();
-  const [db, setDb] = useState<Firestore | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    getDb().then(setDb);
-  }, []);
-
-  useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setInvoices([]);
       setIsLoaded(true);
       return;
@@ -43,98 +37,89 @@ export function useInvoices() {
 
     setIsLoaded(false);
 
-    const loadFirestore = async () => {
-        const { collection, query, onSnapshot } = await import('firebase/firestore');
-        const q = query(collection(db, 'users', user.uid, 'invoices'));
-        
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-          const invoicesData: Invoice[] = [];
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const invoice = {
-              id: doc.id,
-              ...data,
-              // The 'total' is already calculated and stored in the invoice document.
-              // We only need to calculate the 'status' on the client-side as it can be time-dependent (e.g., 'Overdue').
-              status: getInvoiceStatus(data as Invoice),
-            } as Invoice;
-            invoicesData.push(invoice);
-          });
-          setInvoices(invoicesData.sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()));
-          setIsLoaded(true);
-        }, (error) => {
-          console.error("Error fetching invoices:", error);
-          setIsLoaded(true);
-        });
+    const fetchInvoices = async () => {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: false });
 
-        return unsubscribe;
+      if (error) {
+        console.error('Error fetching invoices:', error);
+        setIsLoaded(true);
+        return;
+      }
+
+      const invoicesData: Invoice[] = data.map((invoice: any) => ({
+        ...invoice,
+        status: getInvoiceStatus(invoice),
+      }));
+
+      setInvoices(invoicesData);
+      setIsLoaded(true);
     };
-    
-    const unsubPromise = loadFirestore();
+
+    fetchInvoices();
+
+    const subscription = supabase
+      .channel('public:invoices')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices', filter: `user_id=eq.${user.id}` }, fetchInvoices)
+      .subscribe();
 
     return () => {
-        unsubPromise.then(unsub => unsub && unsub());
+      supabase.removeChannel(subscription);
     };
-  }, [user, db]);
+  }, [user]);
   
   const addInvoice = useCallback(async (newInvoiceData: Omit<Invoice, 'id' | 'status' | 'total'>) => {
-      if (!user || !db) throw new Error("User not authenticated or DB not loaded");
+      if (!user) throw new Error("User not authenticated");
       const total = calculateTotal(newInvoiceData);
       const status = getInvoiceStatus(newInvoiceData);
-      const finalInvoice = { ...newInvoiceData, total, status };
+      const finalInvoice = { ...newInvoiceData, total, status, user_id: user.id };
 
-      try {
-        const { addDoc, collection } = await import('firebase/firestore');
-        await addDoc(collection(db, 'users', user.uid, 'invoices'), finalInvoice);
-      } catch (error) {
+      const { error } = await supabase.from('invoices').insert([finalInvoice]);
+      if (error) {
         console.error("Error adding invoice: ", error);
         throw error;
       }
-  }, [user, db]);
+  }, [user]);
 
   const updateInvoice = useCallback(async (updatedInvoice: Invoice) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not loaded");
+    if (!user) throw new Error("User not authenticated");
     const { id, ...dataToUpdate } = updatedInvoice;
     const total = calculateTotal(dataToUpdate);
     const status = getInvoiceStatus(dataToUpdate);
     const finalInvoice = { ...dataToUpdate, total, status };
     
-    try {
-        const { doc, updateDoc } = await import('firebase/firestore');
-        const invoiceRef = doc(db, 'users', user.uid, 'invoices', id);
-        await updateDoc(invoiceRef, finalInvoice);
-    } catch (error) {
+    const { error } = await supabase.from('invoices').update(finalInvoice).eq('id', id);
+    if (error) {
         console.error("Error updating invoice: ", error);
         throw error;
     }
-  }, [user, db]);
+  }, [user]);
 
   const deleteInvoice = useCallback(async (invoiceId: string) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not loaded");
-    try {
-        const { doc, deleteDoc } = await import('firebase/firestore');
-        await deleteDoc(doc(db, 'users', user.uid, 'invoices', invoiceId));
-    } catch (error) {
+    if (!user) throw new Error("User not authenticated");
+    const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
+    if (error) {
         console.error("Error deleting invoice: ", error);
         throw error;
     }
-  }, [user, db]);
+  }, [user]);
 
   const getInvoiceById = useCallback((invoiceId: string | null) => {
     return invoices.find(inv => inv.id === invoiceId) || null;
   }, [invoices]);
   
-  const addReceipt = useCallback(async (receiptData: Receipt): Promise<DocumentReference> => {
-    if (!user || !db) throw new Error("User not authenticated or DB not loaded");
-    try {
-      const { addDoc, collection } = await import('firebase/firestore');
-      const receiptRef = await addDoc(collection(db, 'users', user.uid, 'receipts'), receiptData);
-      return receiptRef;
-    } catch (error) {
+  const addReceipt = useCallback(async (receiptData: Receipt): Promise<any> => {
+    if (!user) throw new Error("User not authenticated");
+    const { data, error } = await supabase.from('receipts').insert([{ ...receiptData, user_id: user.id }]);
+    if (error) {
       console.error("Error adding receipt: ", error);
       throw error;
     }
-  }, [user, db]);
+    return data;
+  }, [user]);
 
 
   return {
