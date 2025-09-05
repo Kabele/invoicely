@@ -46,10 +46,10 @@ export async function createUserDocument(userId: string, email: string | null) {
     try {
         const docRef = db.collection('users').doc(userId);
         await docRef.set({ email: email || '' }, { merge: true });
+        console.log(`User document created for ${userId}`);
         return { success: true, message: 'User document created successfully.' };
     } catch (error) {
-        console.error('Error creating user document:', error);
-        // We are not re-throwing the error to the client, but returning a structured response
+        console.error(`Error creating user document for ${userId}:`, error);
         return { success: false, error: 'Failed to create user document on the server.' };
     }
 }

@@ -50,17 +50,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { createUserWithEmailAndPassword } = await import('firebase/auth');
     
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    const newUser = userCredential.user;
     
-    // Call the server action to create the user document
-    const result = await createUserDocument(user.uid, user.email);
+    // Call the server action to create the user document and wait for it to complete.
+    const result = await createUserDocument(newUser.uid, newUser.email);
 
     if (!result.success) {
-        // If the document creation fails, we should ideally handle this case.
-        // For now, we'll log the error. In a real app, you might want to delete the auth user
-        // or schedule a retry.
+        // If the document creation fails, we must throw an error to prevent login.
         console.error("Failed to create user document:", result.error);
-        // We can still return the user credential, but the app might be in an inconsistent state.
+        throw new Error(result.error || "Could not create user profile on the server.");
     }
 
     return userCredential;
